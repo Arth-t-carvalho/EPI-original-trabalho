@@ -1,0 +1,929 @@
+/* =========================================
+   1. VARIÁVEIS E RESET (Mantido do seu código)
+   ========================================= */
+:root {
+    --primary: #E30613;
+    --primary-dark: #bf040f;
+    --primary-light: rgba(227, 6, 19, 0.1);
+    --secondary: #1F2937;
+    --text-main: #111827;
+    --text-muted: #64748B;
+
+    --bg-body: #e6e8ec;
+    --bg-card: #ffffff;
+    /* Ajustei para branco para destacar na galeria */
+
+    --success: #10B981;
+    --danger: #EF4444;
+    --border: #CBD5E1;
+    --radius: 12px;
+    /* Ajuste leve para cards */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-body);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    color: var(--text-main);
+}
+
+/* =========================================
+   2. SIDEBAR E LAYOUT (Mantido)
+   ========================================= */
+.sidebar {
+    width: 260px;
+    background: #f8fafc;
+    /* Levemente diferente do body */
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--secondary);
+    margin-bottom: 40px;
+}
+
+.brand span {
+    color: var(--primary);
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.main-content {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.page-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--secondary);
+}
+
+.page-title p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* =========================================
+   3. ESTILOS ESPECÍFICOS DA GALERIA
+   ========================================= */
+
+/* --- Barra de Filtros --- */
+.filter-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    color: var(--secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+    min-width: 150px;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* --- Grid de Cards --- */
+.grid-cards {
+    display: grid;
+    /* Cria colunas automáticas com largura mínima de 260px */
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+    padding-bottom: 40px;
+}
+
+/* --- Card de Violação --- */
+.violation-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    /* Para a imagem não sair da borda */
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.violation-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.15);
+    border-color: rgba(227, 6, 19, 0.3);
+}
+
+/* Imagem do Card */
+.card-image-wrapper {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    background-color: #eee;
+    overflow: hidden;
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.violation-card:hover .card-image {
+    transform: scale(1.1);
+    /* Zoom suave na imagem ao passar o mouse */
+}
+
+/* Overlay Escuro com Lupa */
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.violation-card:hover .card-overlay {
+    opacity: 1;
+}
+
+.zoom-icon {
+    font-size: 24px;
+    background: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Conteúdo do Card */
+.card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.violation-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--danger);
+    background: #FEF2F2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #FECACA;
+}
+
+.camera-id {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: #F1F5F9;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.infrator-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timestamp {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+/* =========================================
+   4. MODAL (Pop-up da Imagem)
+   ========================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    /* Fundo bem escuro */
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    /* Não clica quando invisível */
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: white;
+    padding: 0;
+    border-radius: 12px;
+    max-width: 800px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-content {
+    transform: translateY(0);
+}
+
+.full-image {
+    width: 100%;
+    max-height: 70vh;
+    /* Altura máxima para não estourar a tela */
+    object-fit: contain;
+    background: #000;
+    display: block;
+}
+
+.modal-info-bar {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border-top: 1px solid var(--border);
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.2s;
+    z-index: 10;
+}
+
+.close-modal-btn:hover {
+    background: var(--primary);
+}
+
+/* Animação de Saída de Página (Opcional, se usar JS) */
+.page-exit {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* --- 1. VARIÁVEIS E RESET (Visual Novo) --- */
+:root {
+    --primary: #E30613;
+    /* Vermelho SENAI */
+    --primary-dark: #bf040f;
+    --primary-light: rgba(227, 6, 19, 0.1);
+    --secondary: #1F2937;
+    --text-main: #111827;
+    --text-muted: #64748B;
+
+    /* Fundo mais escuro */
+    --bg-body: #e6e8ec;
+
+    --bg-card: #ebebeb;
+    --success: #10B981;
+    --danger: #EF4444;
+
+    /* Borda mais nítida */
+    --border: #CBD5E1;
+
+    --radius: 16px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-body);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    color: var(--text-main);
+}
+
+/* --- 2. SIDEBAR --- */
+.sidebar {
+    width: 260px;
+    background: var(--bg-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--secondary);
+    margin-bottom: 40px;
+}
+
+.brand span {
+    color: var(--primary);
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+}
+
+/* --- 3. MAIN CONTENT & HEADER --- */
+.main-content {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    /* Impede o header de encolher */
+}
+
+.page-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.page-title p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.btn-export {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--secondary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-export:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 4px 8px rgba(227, 6, 19, 0.15);
+}
+
+.btn-export svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+/* Perfil */
+.user-profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 50px;
+    border: 1px solid transparent;
+    transition: 0.2s;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.user-profile-trigger:hover {
+    border-color: var(--border);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.user-info-mini {
+    text-align: right;
+}
+
+.user-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.user-role {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.user-avatar {
+    width: 42px;
+    height: 42px;
+    background: var(--secondary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Popup Instrutor */
+.instructor-card {
+    position: absolute;
+    top: 90px;
+    right: 32px;
+    width: 320px;
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    display: none;
+    z-index: 100;
+    animation: slideIn 0.2s ease;
+}
+
+.instructor-card.active {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+
+.detail-label {
+    color: var(--text-muted);
+}
+
+.detail-value {
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.btn-close-card {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-close-card:hover {
+    background: #e2e8f0;
+    color: var(--secondary);
+}
+
+/* --- 4. ÁREA ESPECÍFICA: GALERIA DE INFRAÇÕES --- */
+
+.gallery-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+    /* Ocupar resto da tela */
+}
+
+/* Barra de Filtros */
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 10px;
+}
+
+.filter-select {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.filter-select:hover {
+    border-color: var(--text-muted);
+}
+
+.filter-select:focus {
+    border-color: var(--primary);
+}
+
+/* Grid de Cards */
+.grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    padding-bottom: 20px;
+}
+
+/* CARD DE INFRAÇÃO (Adaptado para o novo estilo visual) */
+.violation-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+
+    /* Nova borda e sombra definidas no seu pedido */
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.violation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 35px -10px rgba(227, 6, 19, 0.15), 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    border-color: rgba(227, 6, 19, 0.3);
+}
+
+.card-image-wrapper {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    background-color: #ddd;
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: 0.2s;
+}
+
+.violation-card:hover .card-overlay {
+    opacity: 1;
+}
+
+.zoom-icon {
+    font-size: 24px;
+    background: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.violation-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--primary);
+    background: #FEF2F2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #FECACA;
+}
+
+.camera-id {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.infrator-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--secondary);
+}
+
+.timestamp {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* --- 5. MODAL (Pop-up da Imagem) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex;
+    animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    padding: 12px;
+    border-radius: var(--radius);
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.full-image {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 8px;
+    display: block;
+}
+
+.modal-info-bar {
+    margin-top: 12px;
+    padding: 0 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-modal-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+/* Efeito de Saída de Página (Script JS) */
+.page-exit {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* --- ANIMAÇÃO DE ENTRADA (KEYFRAMES) --- */
+@keyframes slideInSidebar {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInUpContent {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Aplique na Sidebar (Adicione a linha de animation) */
+.sidebar {
+    /* ... (mantenha seus estilos anteriores: width, background, etc) ... */
+    animation: slideInSidebar 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* Aplique no Main Content (Adicione a linha de animation) */
+.main-content {
+    /* ... (mantenha seus estilos anteriores: flex, padding, etc) ... */
+    opacity: 0;
+    /* Começa invisível para não piscar */
+    animation: fadeInUpContent 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    animation-delay: 0.1s;
+    /* Pequeno atraso para começar depois da sidebar */
+}
