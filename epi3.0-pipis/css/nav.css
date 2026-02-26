@@ -1,0 +1,154 @@
+/* =========================================
+   Sidebar - Estilo Geral Unificado
+   ========================================= */
+:root {
+    --primary: #E30613; /* Vermelho SENAI */
+    --primary-dark: #bf040f;
+    --primary-light: rgba(227, 6, 19, 0.1);
+    --secondary: #1F2937;
+    --text-main: #111827;
+    --text-muted: #64748B;
+
+    /* Fundo e Bordas */
+    --bg-body: #e6e8ec;
+    --bg-card: #ebebeb;
+    --border: #CBD5E1;
+
+    /* Status Colors */
+    --success: #10B981;
+    --danger: #EF4444;
+
+    --radius: 16px;
+}   
+
+.sidebar {
+    width: 260px;
+    background: var(--bg-card); 
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+/* Logo / Brand */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--secondary);
+    margin-bottom: 40px;
+}
+
+.brand span {
+    color: var(--primary);
+}
+
+/* Menu de Navegação */
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* =========================================
+   Botões da Navbar (Correção de Ofuscamento)
+   ========================================= */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-muted) !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    
+    /* Garante que o botão NUNCA fique ofuscado */
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Efeito ao passar o mouse (Hover) na Sidebar */
+.nav-item:hover {
+    background: rgba(227, 6, 19, 0.08) !important; 
+    color: var(--primary) !important;
+    opacity: 1 !important;
+}
+
+/* Botão Ativo na Sidebar (Página Atual) */
+.nav-item.active {
+    background: rgba(227, 6, 19, 0.18) !important; 
+    color: var(--primary) !important;
+    font-weight: 700 !important; 
+    border-right: 4px solid var(--primary) !important; 
+    border-radius: 8px 0px 0px 8px !important; 
+    
+    /* Garante o botão visível na Dashboard */
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Deixa o ícone do botão ativo mais grossinho e destacado */
+.nav-item.active i,
+.nav-item.active svg {
+    stroke-width: 2.5px !important; 
+}
+
+.sidebar {
+    width: 260px;
+    background: var(--bg-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    animation: slideInSidebar 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--secondary);
+    margin-bottom: 40px;
+}
+
+.brand span {
+    color: var(--primary);
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+}

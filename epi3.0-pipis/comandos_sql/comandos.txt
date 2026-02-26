@@ -1,0 +1,157 @@
+/*
+==============================
+LER ANTES DE EXECUTAR
+==============================
+
+• Em caso de erro causado por divergência entre os campos do código e os campos do banco de dados,
+  os nomes corretos de cada campo estarão descritos logo abaixo de cada comando SQL.
+
+• Este aviso existe porque, durante o desenvolvimento da aplicação, o banco de dados passou por
+  diversas alterações, nem sempre acompanhadas imediatamente por ajustes no código, o que acabou
+  gerando inconsistências e retrabalho.
+
+• Caso seja necessário alterar a estrutura do banco de dados novamente, isso só deve ser feito
+  mediante um motivo plausível e com autorização do líder do projeto.
+
+• Toda alteração aprovada deve ser registrada neste comentário, informando:
+  - O que foi alterado
+  - O motivo da alteração
+  - A data
+  - O responsável
+
+Manter este comentário atualizado evita confusão, erros de execução e perda de tempo no futuro.
+*/
+
+
+==================================================================================================================================
+==================================================================================================================================
+
+ 
+ CREATE TABLE usuarios (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  usuario VARCHAR(50) UNIQUE NOT NULL,
+  senha VARCHAR(255) NOT NULL,
+  cargo ENUM('super_admin','supervisor','professor') NOT NULL,
+  turno VARCHAR(50),
+  status ENUM('ativo','inativo') DEFAULT 'ativo'
+);
+id, nome, usuario, senha, cargo, turno, status
+
+
+
+
+CREATE TABLE cursos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  sigla VARCHAR(10)
+);
+id, nome, sigla
+
+
+
+
+
+CREATE TABLE alunos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  curso_id INT,
+  turno VARCHAR(50),
+  foto_referencia VARCHAR(255),
+  status ENUM('regular','risco','reincidente') DEFAULT 'regular',
+  FOREIGN KEY (curso_id) REFERENCES cursos(id)
+);
+id, nome, curso_id, turno, foto_referencia
+
+
+
+
+
+
+CREATE TABLE epis (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(50) NOT NULL
+);
+id, nome
+
+
+
+
+CREATE TABLE ocorrencias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  aluno_id INT NOT NULL,
+  data_hora DATETIME NOT NULL,
+  FOREIGN KEY (aluno_id) REFERENCES alunos(id)
+  FOREIGN KEY (epi_id) REFERENCES epis(id)
+);
+
+*foi removido os campos status e origem do codigo por estar sem utilidade 
+*adicionado o campo epi_id uma fk que referencia a tabela epis para facilitar os graficos e nao cruzar tantas tabelas
+id, aluno_id, data_hora, epi_id
+
+
+
+
+
+
+
+CREATE TABLE ocorrencia_epis (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ocorrencia_id INT NOT NULL,
+  epi_id INT NOT NULL,
+  FOREIGN KEY (ocorrencia_id) REFERENCES ocorrencias(id),
+  FOREIGN KEY (epi_id) REFERENCES epis(id)
+);
+id, ocorrencia_id, epi_id
+
+
+
+
+CREATE TABLE evidencias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ocorrencia_id INT NOT NULL,
+  imagem VARCHAR(255) NOT NULL,
+  origem ENUM('ia','manual') DEFAULT 'ia',
+  FOREIGN KEY (ocorrencia_id) REFERENCES ocorrencias(id)
+);
+
+id, ocorrencia_id, imagem, origem
+
+
+
+
+
+CREATE TABLE acoes_ocorrencia (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ocorrencia_id INT NOT NULL,
+  tipo ENUM('obs','adv_verbal','adv_escrita','suspensao'),
+  observacao TEXT,
+  usuario_id INT NOT NULL,
+  data_hora DATETIME NOT NULL,
+  FOREIGN KEY (ocorrencia_id) REFERENCES ocorrencias(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
+id, ocorrencia_id, tipo, observacao, usuario_id, data_hora
+
+
+
+
+
+TABELA ALUNOS.
+id, nome, usuario, senha, cargo, turno, status
+
+TABELA AÇOES OCORRENCIAS
+id, ocorrencia_id, tipo, observacao, usuario_id, data_hora
+
+TABELA EVIDENCIAS
+id, ocorrencia_id, imagem, origem
+
+TABELA OCORRENCIAS EPI
+id, ocorrencia_id, epi_id
+
+TABELA EPIS
+id, nome
+
+TABELA CURSOS 
+id, nome, sigla
