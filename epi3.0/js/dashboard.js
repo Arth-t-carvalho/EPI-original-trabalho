@@ -752,6 +752,7 @@ function verificarNovasOcorrencias() {
     })
     .catch(err => console.error("Erro:", err));
 }
+a
 // <------------------------------------------>//
 setInterval(verificarNovasOcorrencias, 5000);
 verificarNovasOcorrencias();
