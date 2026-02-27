@@ -9,30 +9,49 @@ require_once __DIR__ . '/../config/auth.php';
 $cursoId = 1;
 
 // DADOS DO USUÁRIO
-$stmtUser = $pdo->prepare("SELECT nome, cargo FROM usuarios WHERE usuario = ?");
-$stmtUser->execute([$_SESSION['usuario_nome'] ?? 'admin']);
-$userData = $stmtUser->fetch(PDO::FETCH_ASSOC);
+$sqlUser = "SELECT nome, cargo FROM usuarios WHERE usuario = ? LIMIT 1";
+$stmtUser = mysqli_prepare($conn, $sqlUser);
+$userRef = $_SESSION['usuario_nome'] ?? 'admin';
+mysqli_stmt_bind_param($stmtUser, "s", $userRef);
+mysqli_stmt_execute($stmtUser);
+$resUser = mysqli_stmt_get_result($stmtUser);
+$userData = mysqli_fetch_assoc($resUser);
 
 $nomeUsuario = $userData['nome'] ?? 'Usuário';
 $cargoUsuario = ucfirst($userData['cargo'] ?? 'Visitante');
 
 // KPIs
-$stmtDia = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY");
-$stmtDia->execute([$cursoId]);
-$infraDia = $stmtDia->fetchColumn();
+// Infrações do Dia
+$sqlDia = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
+$stmtDia = mysqli_prepare($conn, $sqlDia);
+mysqli_stmt_bind_param($stmtDia, "i", $cursoId);
+mysqli_stmt_execute($stmtDia);
+$resDia = mysqli_stmt_get_result($stmtDia);
+$infraDia = mysqli_fetch_assoc($resDia)['total'] ?? 0;
 
-$stmtSemana = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE(), 1)");
-$stmtSemana->execute([$cursoId]);
-$infraSemana = $stmtSemana->fetchColumn();
+// Infrações da Semana
+$sqlSemana = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE(), 1)";
+$stmtSemana = mysqli_prepare($conn, $sqlSemana);
+mysqli_stmt_bind_param($stmtSemana, "i", $cursoId);
+mysqli_stmt_execute($stmtSemana);
+$resSemana = mysqli_stmt_get_result($stmtSemana);
+$infraSemana = mysqli_fetch_assoc($resSemana)['total'] ?? 0;
 
-$stmtMes = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE()) AND YEAR(o.data_hora) = YEAR(CURDATE())");
-$stmtMes->execute([$cursoId]);
-$infraMes = $stmtMes->fetchColumn();
+// Infrações do Mês
+$sqlMes = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE()) AND YEAR(o.data_hora) = YEAR(CURDATE())";
+$stmtMes = mysqli_prepare($conn, $sqlMes);
+mysqli_stmt_bind_param($stmtMes, "i", $cursoId);
+mysqli_stmt_execute($stmtMes);
+$resMes = mysqli_stmt_get_result($stmtMes);
+$infraMes = mysqli_fetch_assoc($resMes)['total'] ?? 0;
 
 // MÉDIA TURMA
-$stmtAlunosTotal = $pdo->prepare("SELECT COUNT(*) FROM alunos WHERE curso_id = ?");
-$stmtAlunosTotal->execute([$cursoId]);
-$totalAlunos = (int) $stmtAlunosTotal->fetchColumn();
+$sqlTotalAlunos = "SELECT COUNT(*) as total FROM alunos WHERE curso_id = ?";
+$stmtAlunosTotal = mysqli_prepare($conn, $sqlTotalAlunos);
+mysqli_stmt_bind_param($stmtAlunosTotal, "i", $cursoId);
+mysqli_stmt_execute($stmtAlunosTotal);
+$resTotalAlunos = mysqli_stmt_get_result($stmtAlunosTotal);
+$totalAlunos = (int) (mysqli_fetch_assoc($resTotalAlunos)['total'] ?? 0);
 
 if ($totalAlunos === 0) {
     $mediaTurma = 100;
@@ -42,39 +61,44 @@ if ($totalAlunos === 0) {
 }
 
 // ALUNOS CRÍTICOS
-$stmtAlunosCriticos = $pdo->prepare("SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC LIMIT 5");
-$stmtAlunosCriticos->execute([$cursoId]);
-$alunosCriticos = $stmtAlunosCriticos->fetchAll(PDO::FETCH_ASSOC);
+$sqlCriticos = "SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC LIMIT 5";
+$stmtAlunosCriticos = mysqli_prepare($conn, $sqlCriticos);
+mysqli_stmt_bind_param($stmtAlunosCriticos, "i", $cursoId);
+mysqli_stmt_execute($stmtAlunosCriticos);
+$resCriticos = mysqli_stmt_get_result($stmtAlunosCriticos);
+$alunosCriticos = mysqli_fetch_all($resCriticos, MYSQLI_ASSOC);
 
-
-// --- COMPARAÇÕES (Acrescentar aqui) ---
-
-// Ontem (para comparar com hoje)
-$stmtOntem = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() - INTERVAL 1 DAY AND o.data_hora < CURDATE()");
-$stmtOntem->execute([$cursoId]);
-$infraOntem = (int) $stmtOntem->fetchColumn();
+// COMPARAÇÕES
+// Ontem
+$sqlOntem = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() - INTERVAL 1 DAY AND o.data_hora < CURDATE()";
+$stmtOntem = mysqli_prepare($conn, $sqlOntem);
+mysqli_stmt_bind_param($stmtOntem, "i", $cursoId);
+mysqli_stmt_execute($stmtOntem);
+$infraOntem = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtOntem))['total'] ?? 0);
 $percDia = ($infraOntem > 0) ? round((($infraDia - $infraOntem) / $infraOntem) * 100, 1) : ($infraDia * 100);
 
 // Semana Anterior
-$stmtSemAnt = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)");
-$stmtSemAnt->execute([$cursoId]);
-$infraSemanaAnterior = (int) $stmtSemAnt->fetchColumn();
+$sqlSemAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)";
+$stmtSemAnt = mysqli_prepare($conn, $sqlSemAnt);
+mysqli_stmt_bind_param($stmtSemAnt, "i", $cursoId);
+mysqli_stmt_execute($stmtSemAnt);
+$infraSemanaAnterior = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemAnt))['total'] ?? 0);
 $percSemana = ($infraSemanaAnterior > 0) ? round((($infraSemana - $infraSemanaAnterior) / $infraSemanaAnterior) * 100, 1) : ($infraSemana * 100);
 
 // Mês Anterior
-$stmtMesAnt = $pdo->prepare("SELECT COUNT(o.id) FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(o.data_hora) = YEAR(CURDATE() - INTERVAL 1 MONTH)");
-$stmtMesAnt->execute([$cursoId]);
-$infraMesAnterior = (int) $stmtMesAnt->fetchColumn();
+$sqlMesAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(o.data_hora) = YEAR(CURDATE() - INTERVAL 1 MONTH)";
+$stmtMesAnt = mysqli_prepare($conn, $sqlMesAnt);
+mysqli_stmt_bind_param($stmtMesAnt, "i", $cursoId);
+mysqli_stmt_execute($stmtMesAnt);
+$infraMesAnterior = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMesAnt))['total'] ?? 0);
 $percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $infraMesAnterior) * 100, 1) : ($infraMes * 100);
 
-
-$stmtRankingModal = $pdo->prepare("SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC");
-$stmtRankingModal->execute([$cursoId]);
-$rankingModal = $stmtRankingModal->fetchAll(PDO::FETCH_ASSOC);
-
-
-
-
+// Ranking Modal
+$sqlRanking = "SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC";
+$stmtRankingModal = mysqli_prepare($conn, $sqlRanking);
+mysqli_stmt_bind_param($stmtRankingModal, "i", $cursoId);
+mysqli_stmt_execute($stmtRankingModal);
+$rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -87,724 +111,13 @@ $rankingModal = $stmtRankingModal->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/dashboard.css">
-    <style>
-        /* ==========================================================================
-   ESTILOS ESPECÍFICOS DO CALENDÁRIO (MODAL)
-   ========================================================================== */
 
-
-        /* =============================================================
-   NOVOS ESTILOS (Adicione ao final do dashboard.css)
-   ============================================================= */
-
-        /* --- 1. ANIMAÇÃO DE CHACOALHAR (ERRO NO INPUT) --- */
-        @keyframes shake-horizontal {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            20%,
-            60% {
-                transform: translateX(-6px);
-            }
-
-            40%,
-            80% {
-                transform: translateX(6px);
-            }
-        }
-
-        /* Classe que será adicionada via JS quando houver erro */
-        .input-wrapper.error-shake {
-            animation: shake-horizontal 0.4s ease-in-out;
-            border-color: #EF4444 !important;
-            /* Vermelho de erro */
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-        }
-
-        /* Garante que o ícone e texto fiquem vermelhos no erro */
-        .input-wrapper.error-shake svg.icon-left,
-        .input-wrapper.error-shake input {
-            color: #EF4444;
-            fill: #EF4444;
-        }
-
-
-        /* --- 2. ESTILO DO SUBTÍTULO ("Dados atualizados") --- */
-        /* Substitui o estilo antigo do .date-sub-text */
-        .date-sub-text {
-            display: inline-block;
-            /* Necessário para o padding funcionar bem */
-            margin-top: 1px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #047857;
-            /* Verde mais profissional */
-            background-color: #ECFDF5;
-            /* Fundo verde bem claro */
-            padding: 2px 1px;
-            border-radius: 20px;
-            /* Bordas bem redondas (estilo pílula) */
-
-            /* Sombreado suave e elegante */
-            box-shadow: 0 2px 6px rgba(4, 120, 87, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.8);
-
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
-        }
-
-        /* Efeito opcional ao passar o mouse sobre a área da data */
-        .date-center-display:hover .date-sub-text {
-            background-color: #D1FAE5;
-            transform: translateY(-1px);
-        }
-
-        /* Fundo Escuro do Modal (Centraliza tudo) */
-        .modal-overlay-calendar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            /* Fundo escurecido */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            /* Garante que fique acima de tudo */
-
-            /* Estado inicial: Escondido */
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(2px);
-            /* Efeito de desfoque no fundo */
-        }
-
-        /* Quando o JS adiciona a classe .active, o modal aparece */
-        .modal-overlay-calendar.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* O "Cartão" Branco do Calendário */
-        .calendar-wrapper {
-            background: #fff;
-            width: 380px;
-            border-radius: 16px;
-            padding: 25px;
-            position: relative;
-            border: 1px solid #D1D5DB;
-            box-shadow:
-                0 20px 25px -5px rgba(0, 0, 0, 0.25),
-                0 10px 10px -5px rgba(0, 0, 0, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 1);
-        }
-
-        /* Botão Fechar (X) */
-        .close-btn-cal {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 18px;
-            color: #9CA3AF;
-            cursor: pointer;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .close-btn-cal:hover {
-            background: #F3F4F6;
-            color: #EF4444;
-        }
-
-        /* --- HEADER DO CALENDÁRIO (Mês e Ano) --- */
-        .cal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-right: 20px;
-            /* Espaço para o botão fechar não sobrepor */
-        }
-
-        .month-nav-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .nav-btn-cal {
-            background: none;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #4B5563;
-            transition: all 0.2s;
-        }
-
-        .nav-btn-cal:hover {
-            background: #E30613;
-            color: white;
-            border-color: #E30613;
-        }
-
-        /* Ajuste fino nos botões de navegação lateral */
-        .nav-btn {
-            background: #efeff0;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            color: var(--secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-
-        .nav-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background-color: #fff;
-            transform: scale(1.1);
-        }
-
-        /* Garante que o container de data não quebre linha */
-        .date-display {
-            flex: 1;
-            user-select: none;
-        }
-
-        /* Estilo do Calendário Expandido (Modal) */
-        .calendar-day-btn.active {
-            background-color: var(--primary) !important;
-            color: white !important;
-            box-shadow: 0 4px 10px rgba(227, 6, 19, 0.3);
-        }
-
-        .calendar-day-btn:hover:not(.empty):not(.active) {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .selector-display {
-            font-weight: 700;
-            font-size: 16px;
-            color: #1F2937;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* --- CORPO DO CALENDÁRIO (DIAS) --- */
-        .calendar-body .weeks {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            /* 7 Colunas iguais */
-            list-style: none;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #F3F4F6;
-            padding-bottom: 10px;
-        }
-
-        .calendar-body .weeks li {
-            font-weight: 600;
-            font-size: 13px;
-            color: #9CA3AF;
-            text-align: center;
-        }
-
-        .calendar-body .days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            /* 7 Colunas iguais */
-            list-style: none;
-            gap: 5px;
-            /* Espaço entre os dias */
-        }
-
-        .calendar-body .days li {
-            height: 40px;
-            /* Altura do botão do dia */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            color: #374151;
-            border-radius: 50%;
-            /* Bolinha redonda */
-            position: relative;
-            transition: all 0.2s;
-        }
-
-        /* Dias Inativos (mês passado/futuro) */
-        .days li.inactive {
-            color: #D1D5DB;
-            pointer-events: none;
-        }
-
-        /* Dia HOJE */
-        .days li.today {
-            color: #E30613;
-            font-weight: bold;
-            background: #FEF2F2;
-        }
-
-        /* Dia SELECIONADO */
-        .days li.active {
-            background: #E30613;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .days li:not(.active):not(.inactive):hover {
-            background: #F3F4F6;
-        }
-
-        /* --- INPUT MANUAL (Rodapé do calendário) --- */
-        .input-area {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #E5E7EB;
-        }
-
-        .input-wrapper {
-            display: flex;
-            align-items: center;
-            background: #F9FAFB;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            padding: 8px 12px;
-        }
-
-        .input-wrapper:focus-within {
-            border-color: #E30613;
-            box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.1);
-        }
-
-        .icon-left {
-            width: 20px;
-            height: 20px;
-            fill: #9CA3AF;
-            margin-right: 10px;
-        }
-
-        .input-wrapper input {
-            border: none;
-            background: none;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-            color: #374151;
-        }
-
-        /* --- BOTÃO QUADRADO ARREDONDADO (LUPA) --- */
-
-        /* --- BOTÃO QUADRADO COM SOMBREADO LEVE --- */
-
-        /* --- BOTÃO QUADRADO COM SOMBRA FORTE E APARENTE --- */
-
-        .btn-action-right {
-            background: #F3F4F6;
-            border: 1px solid #D1D5DB;
-            border-radius: 8px;
-            width: 32px;
-            /* Tamanho fixo menor */
-            height: 32px;
-            /* Tamanho fixo menor */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            margin-left: 5px;
-            padding: 0 !important;
-            /* Remove qualquer padding que o dashboard.css aplique */
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s;
-            flex-shrink: 0;
-            /* Impede que o botão amasse */
-        }
-
-        /* Ajuste o ícone dentro dele */
-        .btn-action-right svg {
-            width: 16px !important;
-            height: 16px !important;
-            stroke-width: 2.5px;
-        }
-
-        /* Efeito ao passar o mouse (Hover) */
-        .btn-action-right:hover {
-            background: #FFFFFF;
-            border-color: #9CA3AF;
-            transform: translateY(-2px);
-            /* Pula um pouco mais alto */
-
-            /* Sombra fica mais intensa no hover */
-            box-shadow:
-                0 10px 15px -3px rgba(0, 0, 0, 0.2),
-                0 4px 6px -2px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-action-right:hover svg {
-            stroke: #E30613;
-            /* Lupa brilha em vermelho */
-            transform: scale(1.1);
-            /* Lupa aumenta levemente */
-        }
-
-        /* Efeito de clique (Botão afunda e a sombra inverte) */
-        .btn-action-right:active {
-            transform: translateY(1px);
-            box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.2);
-            /* Sombra interna forte */
-            background: #E5E7EB;
-        }
-
-        /* --- DROPDOWNS DO CALENDÁRIO (SELETORES) --- */
-
-        .selector-container {
-            position: relative;
-            /* Necessário para o dropdown flutuar relativo a este botão */
-        }
-
-        .selector-dropdown {
-            position: absolute;
-            top: 100%;
-            /* Logo abaixo do texto */
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            padding: 5px;
-            z-index: 50;
-            min-width: 120px;
-            max-height: 200px;
-            overflow-y: auto;
-            /* Barra de rolagem se for muito longo */
-
-            /* Escondido por padrão */
-            display: none;
-        }
-
-        .selector-dropdown.active {
-            display: block;
-            /* Aparece quando tem a classe active */
-        }
-
-        .dropdown-item {
-            padding: 8px 12px;
-            font-size: 13px;
-            color: #374151;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.2s;
-            text-align: center;
-        }
-
-        .dropdown-item:hover {
-            background-color: #F3F4F6;
-            color: #E30613;
-        }
-
-        .dropdown-item.selected {
-            background-color: #FEF2F2;
-            color: #E30613;
-            font-weight: bold;
-        }
-
-        .calendar-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            background: #f8fafc;
-            padding: 8px;
-            border-radius: 8px;
-            border: none;
-            /* Box Shadow: Horizontal, Vertical, Desfoque, Espalhamento, Cor */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        /* Animação de pulo e brilho vermelho */
-        /* Animação de chacoalhada (Shake) */
-
-        .shake-attention {
-            animation: shake-red 0.6s cubic-bezier(.36, .07, .19, .97) both;
-            box-shadow: 0 0 15px rgba(227, 6, 19, 0.4);
-            z-index: 10;
-            /* Garante que fique acima de outros elementos ao tremer */
-        }
-
-        /* Container do Modal */
-        .modal-ranking-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.7);
-            z-index: 99999;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(8px);
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* O Quadrado Centralizado */
-        .modal-ranking-square {
-            background: white;
-            width: 500px;
-            height: 500px;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* Cabeçalho */
-        .modal-ranking-header {
-            padding: 24px;
-            background: #ffffff;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .modal-ranking-header h2 {
-            margin: 0;
-            font-size: 1.25rem;
-            color: #1e293b;
-        }
-
-        /* Tabela e Scroll */
-        .modal-ranking-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 20px;
-        }
-
-        /* Customização da Barra de Rolagem (Scrollbar) */
-        .modal-ranking-body::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .modal-ranking-body::-webkit-scrollbar-thumb {
-            border-radius: 10px;
-        }
-
-        /* Estilo da Tabela */
-        .ranking-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 8px;
-        }
-
-        .ranking-table th {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 10px;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #94a3b8;
-            z-index: 10;
-        }
-
-        .ranking-row {
-            transition: all 0.2s ease;
-        }
-
-        /* Efeito Hover nas Linhas */
-        .ranking-row:hover {
-            transform: translateX(5px);
-        }
-
-        .ranking-row:hover td {
-            background: #f8fafc !important;
-        }
-
-        .ranking-row td {
-            padding: 12px 15px;
-            font-size: 14px;
-            background: #ffffff;
-        }
-
-        /* Arredondar pontas das linhas para o efeito de card */
-        .ranking-row td:first-child {
-            border-radius: 10px 0 0 10px;
-            font-weight: 700;
-            color: #94a3b8;
-        }
-
-        .ranking-row td:last-child {
-            border-radius: 0 10px 10px 0;
-            text-align: right;
-        }
-
-        /* Badge de Ocorrências */
-        .badge-count {
-            background: #fee2e2;
-            color: #ef4444;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 800;
-            font-size: 12px;
-        }
-
-        /* Animação */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.45);
-            }
-
-            to {
-                opacity: 0;
-                transform: scale(1);
-            }
-        }
-
-        /* Estilo Base para os Novos Status */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-
-        /* Cores específicas para cada nível */
-        .status-critico {
-            background-color: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .status-alto {
-            background-color: #ffedd5;
-            color: #ea580c;
-            border: 1px solid #fed7aa;
-        }
-
-        .status-moderado {
-            background-color: #fef9c3;
-            color: #a16207;
-            border: 1px solid #fef08a;
-        }
-
-        .status-baixo {
-            background-color: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-
-        /* Configuração inicial do Main Content */
-        .main-content {
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-            opacity: 1;
-        }
-
-        /* Animação de Entrada (quando a página carrega) */
-        .page-enter {
-            animation: slideInRight 0.5s ease-out forwards;
-        }
-
-        /* Animação de Saída (antes de mudar de página) */
-        .page-exit {
-            transform: translateX(-100%) !important;
-            opacity: 0 !important;
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(50px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-    <aside class="sidebar">
-        <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E30613" stroke-width="3"
-                style="filter: drop-shadow(0 2px 4px rgba(227, 6, 19, 0.3));">
-                <circle cx="12" cy="12" r="10" />
-            </svg>
-
-            &nbsp; EPI <span>GUARD</span>
-        </div>
-
-        <nav class="nav-menu">
-
-            <a class="nav-item active" href="dashboard.php">
-                <i data-lucide="layout-dashboard"></i>
-                <span>Dashboard</span>
-            </a>
-
-            <a class="nav-item" href="infracoes.php">
-                <i data-lucide="alert-triangle"></i>
-                <span>Infrações</span>
-            </a>
-
-            <a class="nav-item" href="controleSala.php">
-                <i data-lucide="users"></i>
-                <span>Controle de Sala</span>
-            </a>
-
-            <a class="nav-item" href="ocorrencias.php">
-                <i data-lucide="file-text"></i>
-                <span>Ocorrências</span>
-            </a>
-
-            <a class="nav-item" href="configuracoes.php">
-                <i data-lucide="settings"></i>
-                <span>Configurações</span>
-            </a>
-            <a class="nav-item" href="monitoramento.php">
-                <i data-lucide="monitor"></i>
-                <span>Monitoramento</span>
-            </a>
-
-        </nav>
-    </aside>
-
+ 
+   <?php include __DIR__ . '/../components/sidebar.php'; ?>
 
     <main class="main-content">
 
@@ -1147,41 +460,9 @@ $rankingModal = $stmtRankingModal->fetchAll(PDO::FETCH_ASSOC);
         lucide.createIcons();
     </script>
     <script src="../js/dashboard.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-    const mainContent = document.querySelector('.main-content');
-    const navItems = document.querySelectorAll('.nav-item');
-
-    // 1. Aplica animação de entrada ao carregar
-    mainContent.classList.add('page-enter');
-
-    // 2. Prepara o áudio (Use um link de um som curto tipo "whoosh" ou "click")
-    const transitionSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
-    transitionSound.volume = 0.3; // Volume 30%
-
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            const destination = this.getAttribute('href');
-
-            // Se for um link válido e não for a página atual
-            if (destination && destination !== '#' && !this.classList.contains('active')) {
-                e.preventDefault(); // Para a navegação imediata
-
-                // Toca o som
-                transitionSound.play();
-
-                // Adiciona a classe de saída apenas no conteúdo principal
-                mainContent.classList.add('page-exit');
-
-                // Aguarda 400ms (tempo da animação/som) e navega
-                setTimeout(() => {
-                    window.location.href = destination;
-                }, 450);
-            }
-        });
-    });
-});
-    </script>
+   <script src="../js/global.js"></script>
+    <script src="../js/Dark.js"></script>
+    <script src="../js/configuracao.js"></script>
 </body>
 
 </html>

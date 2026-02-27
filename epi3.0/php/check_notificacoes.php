@@ -4,18 +4,21 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 
 require_once __DIR__ . '/../config/auth.php';
-require_once __DIR__ . '/../config/database.php';
+// Supondo que dentro de database.php agora você tenha uma conexão MySQLi na variável $conn
+require_once __DIR__ . '/../config/database.php'; 
 
 try {
     $last_id = isset($_GET['last_id']) ? (int)$_GET['last_id'] : 0;
     $cursoId = 1;
 
-    // Se for a primeira carga (init), apenas pegamos o último ID do banco
-    // para não carregar o histórico inteiro como notificação.
+    // Se for a primeira carga (init)
     if ($last_id === 0) {
-        $stmt = $pdo->prepare("SELECT MAX(o.id) as max_id FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ?");
-        $stmt->execute([$cursoId]);
-        $maxId = (int) $stmt->fetchColumn();
+        $stmt = $conn->prepare("SELECT MAX(o.id) as max_id FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ?");
+        $stmt->bind_param("i", $cursoId); // "i" para integer
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $maxId = (int) ($row['max_id'] ?? 0);
         
         echo json_encode([
             'status' => 'init',
@@ -24,7 +27,7 @@ try {
         exit;
     }
 
-    // Se não for init, buscamos TODAS as ocorrências MAIORES que o last_id
+    // Busca ocorrências MAIORES que o last_id
     $query = "SELECT o.id, a.nome AS aluno,
                      CASE o.epi_id
                         WHEN 1 THEN 'oculos'
@@ -34,13 +37,18 @@ try {
               FROM ocorrencias o
               JOIN alunos a ON a.id = o.aluno_id
               WHERE a.curso_id = ? AND o.id > ?
-              ORDER BY o.id ASC"; // ASC para mostrar na ordem cronológica correta
+              ORDER BY o.id ASC";
 
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$cursoId, $last_id]);
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("ii", $cursoId, $last_id); // dois inteiros
+    $stmt->execute();
+    $result = $stmt->get_result();
     
-    // FETCH_ALL é a chave aqui! Ele garante que o retorno seja um Array, compatível com o forEach do JS
-    $novasOcorrencias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Transforma o resultado em um Array (equivalente ao fetchAll do PDO)
+    $novasOcorrencias = [];
+    while ($row = $result->fetch_assoc()) {
+        $novasOcorrencias[] = $row;
+    }
 
     if (count($novasOcorrencias) > 0) {
         echo json_encode([

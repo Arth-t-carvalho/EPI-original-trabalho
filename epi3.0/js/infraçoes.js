@@ -101,3 +101,35 @@ function forceClose() {
     // Limpa a imagem para não aparecer a anterior ao abrir um novo card
     document.getElementById('modalImg').src = "";
 }
+
+        lucide.createIcons();
+        // (Mantive seus scripts de busca e modal originais abaixo)
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const term = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.violation-card');
+            cards.forEach(card => {
+                const content = card.innerText.toLowerCase();
+                if (content.includes(term)) {
+                    card.style.display = "block";
+                    setTimeout(() => { card.style.opacity = "1"; card.style.transform = "scale(1)"; }, 10);
+                } else {
+                    card.style.opacity = "0";
+                    card.style.transform = "scale(0.95)";
+                    setTimeout(() => { if(card.style.opacity === "0") card.style.display = "none"; }, 300);
+                }
+            });
+        });
+
+        function openModalPHP(src, nome, epi, hora, dataCompleta) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('modalName').innerText = nome;
+            document.getElementById('modalDesc').innerText = "Infração: " + epi;
+            document.getElementById('modalTime').innerText = "Horário: " + hora + " | Data: " + dataCompleta;
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function forceClose() {
+            document.getElementById('imageModal').classList.remove('active');
+            document.getElementById('modalImg').src = "";
+        }
+        function closeModal(event) { if (event.target.id === 'imageModal') forceClose(); }

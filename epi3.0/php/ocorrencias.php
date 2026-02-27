@@ -1,8 +1,13 @@
 <?php
 // Correção solicitada: auth.php (caminho relativo assumindo que está na pasta /pages/)
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/auth.php'; ?>
+require_once __DIR__ . '/../config/auth.php';
 
+// --- CÓDIGO NOVO: Busca de alunos ---
+$sql_alunos = "SELECT id, nome, curso_id, turno, foto_referencia, imagem FROM alunos ORDER BY nome ASC";
+$result_alunos = mysqli_query($conn, $sql_alunos);
+// ------------------------------------
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -17,7 +22,7 @@ require_once __DIR__ . '/../config/auth.php'; ?>
 
 <body>
 
-     <aside class="sidebar">
+    <aside class="sidebar">
         <div class="brand">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E30613" stroke-width="3"
                 style="filter: drop-shadow(0 2px 4px rgba(227, 6, 19, 0.3));">
@@ -116,7 +121,26 @@ require_once __DIR__ . '/../config/auth.php'; ?>
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label class="form-label">Aluno Identificado</label>
-                    <input type="text" class="form-input" id="studentNameInput" value="Aguardando seleção..." readonly>
+                    <select class="form-select" id="studentNameInput" name="aluno_id" required >
+                        <option value="" disabled selected>Selecione um aluno...</option>
+                        <?php
+                        // Verifica se retornou algum aluno
+                        if ($result_alunos && mysqli_num_rows($result_alunos) > 0) {
+                            // Cria uma opção (option) para cada aluno encontrado
+                            while ($aluno = mysqli_fetch_assoc($result_alunos)) {
+                                // Coloquei os outros dados como atributos "data-*" caso você queira usar no JavaScript depois
+                                echo '<option value="' . htmlspecialchars($aluno['id']) . '" 
+                              data-curso="' . htmlspecialchars($aluno['curso_id'] ?? '') . '" 
+                              data-turno="' . htmlspecialchars($aluno['turno'] ?? '') . '">';
+                                echo htmlspecialchars($aluno['nome']);
+                                echo '</option>';
+                            }
+                        } else {
+                            echo '<option value="" disabled>Nenhum aluno encontrado</option>';
+                        }
+                        ?>
+
+                    </select>
                 </div>
 
                 <div class="form-group">

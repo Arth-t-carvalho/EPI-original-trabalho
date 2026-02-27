@@ -596,17 +596,7 @@ body {
     display: block;
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 .detail-row {
     display: flex;
@@ -820,15 +810,6 @@ body {
     animation: fadeIn 0.2s;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
 
 .modal-content {
     background: white;
@@ -888,29 +869,7 @@ body {
 }
 
 /* --- ANIMAÇÃO DE ENTRADA (KEYFRAMES) --- */
-@keyframes slideInSidebar {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
 
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes fadeInUpContent {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Aplique na Sidebar (Adicione a linha de animation) */
 .sidebar {

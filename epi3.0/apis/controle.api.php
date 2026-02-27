@@ -1,6 +1,6 @@
 <?php
 // =================================================================================
-// ARQUIVO: apis/controle.api.php
+// ARQUIVO: apis/controle.api.php (CONVERTIDO PARA MYSQLI - SEM PDO)
 // =================================================================================
 
 require_once __DIR__ . '/../config/database.php';
@@ -9,7 +9,7 @@ require_once __DIR__ . '/../config/database.php';
 if (ob_get_length()) ob_clean();
 
 header('Content-Type: application/json; charset=utf-8');
-// Desativa exibição de erros no corpo da resposta (eles vão para o log do servidor)
+// Desativa exibição de erros no corpo da resposta
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
@@ -24,35 +24,50 @@ try {
         LEFT JOIN cursos c ON a.curso_id = c.id
         ORDER BY a.nome ASC
     ";
-    $stmt = $pdo->query($sql);
-    $alunos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $resAlunos = mysqli_query($conn, $sql);
+    
+    if (!$resAlunos) {
+        throw new Exception("Erro na consulta de alunos: " . mysqli_error($conn));
+    }
 
     $resultado = [];
 
-    foreach ($alunos as $aluno) {
+    // Usando mysqli_fetch_assoc para percorrer os resultados de forma leve
+    while ($aluno = mysqli_fetch_assoc($resAlunos)) {
         $id = $aluno['id'];
 
         // 2. CONTA O TOTAL DE OCORRÊNCIAS (Histórico Geral)
-        $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM ocorrencias WHERE aluno_id = ?");
-        $stmtCount->execute([$id]);
-        $totalOcorrencias = $stmtCount->fetchColumn();
+        $sqlCount = "SELECT COUNT(*) as total FROM ocorrencias WHERE aluno_id = ?";
+        $stmtCount = mysqli_prepare($conn, $sqlCount);
+        mysqli_stmt_bind_param($stmtCount, "i", $id);
+        mysqli_stmt_execute($stmtCount);
+        $resCount = mysqli_stmt_get_result($stmtCount);
+        $totalOcorrencias = mysqli_fetch_assoc($resCount)['total'] ?? 0;
 
         // 3. VERIFICA SE FALTOU EPI HOJE (Risco Ativo)
-        $stmtEpi = $pdo->prepare("
+        $sqlEpi = "
             SELECT e.nome 
             FROM ocorrencias o 
             JOIN epis e ON e.id = o.epi_id 
             WHERE o.aluno_id = ? AND DATE(o.data_hora) = CURDATE()
-        ");
-        $stmtEpi->execute([$id]);
-        $episFaltantesHoje = $stmtEpi->fetchAll(PDO::FETCH_COLUMN);
+        ";
+        $stmtEpi = mysqli_prepare($conn, $sqlEpi);
+        mysqli_stmt_bind_param($stmtEpi, "i", $id);
+        mysqli_stmt_execute($stmtEpi);
+        $resEpi = mysqli_stmt_get_result($stmtEpi);
+        
+        $episFaltantesHoje = [];
+        while ($rowEpi = mysqli_fetch_assoc($resEpi)) {
+            $episFaltantesHoje[] = $rowEpi['nome'];
+        }
 
         $resultado[] = [
-            'id'            => $aluno['id'],
+            'id'            => (int)$aluno['id'],
             'name'          => $aluno['nome'],
-            'course'        => $aluno['curso_nome'] ?? 'Sem Curso', // Pega o nome real do curso
-            'missing'       => $episFaltantesHoje,     // Array: ['Capacete', 'Óculos'] ou []
-            'history_count' => (int)$totalOcorrencias  // Número: 0, 1, 5...
+            'course'        => $aluno['curso_nome'] ?? 'Sem Curso',
+            'missing'       => $episFaltantesHoje,
+            'history_count' => (int)$totalOcorrencias
         ];
     }
 

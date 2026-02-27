@@ -339,3 +339,53 @@ function toggleInstructorCard() {
     card.style.display = (card.style.display === 'block') ? 'none' : 'block';
 }
 
+   // 1. CARREGAMENTO INICIAL (Para a Sidebar e menu lateral)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+
+        window.exibirDetalhesAluno = function (aluno) {
+            console.log("Abrindo modal para o aluno:", aluno);
+
+            document.getElementById('modalName').innerText = aluno.nome || 'Nome não informado';
+            document.getElementById('modalCourse').innerText = aluno.curso || 'Curso não informado';
+
+            const footer = document.getElementById('modalFooterActions');
+            const nomeSeguro = (aluno.nome || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const alunoIdSafe = aluno.id || 0;
+
+            // Inserindo os botões
+            footer.innerHTML = `
+            <button class="btn-view-infracoes" onclick="irParaInfracoes('${nomeSeguro}')">
+                <i data-lucide="search"></i> Ver Infrações
+            </button>
+            <button class="btn-open-occurrence" onclick="abrirOcorrencia(${alunoIdSafe})">
+                <i data-lucide="plus-circle"></i> Abrir Ocorrência
+            </button>
+        `;
+
+            // 2. RE-RENDERIZAÇÃO DO MODAL (O segredo está no setTimeout)
+            // Usamos um tempo de 0ms apenas para empurrar a execução para o final da fila do navegador
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 10);
+
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('active');
+        };
+
+
+        function irParaInfracoes(nomeAluno) {
+            if (!nomeAluno) return;
+            const nomeCodificado = encodeURIComponent(nomeAluno);
+            window.location.href = `infracoes.php?periodo=todos&busca=${nomeCodificado}`;
+        }
+
+        function abrirOcorrencia(id) {
+            if (!id) return;
+            window.location.href = `ocorrencias.php?novo=true&aluno_id=${id}`;
+        }

@@ -807,3 +807,37 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+       document.addEventListener("DOMContentLoaded", () => {
+    const mainContent = document.querySelector('.main-content');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    // 1. Aplica animação de entrada ao carregar
+    mainContent.classList.add('page-enter');
+
+    // 2. Prepara o áudio (Use um link de um som curto tipo "whoosh" ou "click")
+    const transitionSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
+    transitionSound.volume = 0.3; // Volume 30%
+
+    navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            const destination = this.getAttribute('href');
+
+            // Se for um link válido e não for a página atual
+            if (destination && destination !== '#' && !this.classList.contains('active')) {
+                e.preventDefault(); // Para a navegação imediata
+
+                // Toca o som
+                transitionSound.play();
+
+                // Adiciona a classe de saída apenas no conteúdo principal
+                mainContent.classList.add('page-exit');
+
+                // Aguarda 400ms (tempo da animação/som) e navega
+                setTimeout(() => {
+                    window.location.href = destination;
+                }, 450);
+            }
+        });
+    });
+});
