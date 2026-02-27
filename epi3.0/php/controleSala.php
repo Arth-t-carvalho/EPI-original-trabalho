@@ -19,13 +19,14 @@ $iniciais = strtoupper(substr($nomeUsuario, 0, 2));
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPI Guard | Controle de Sala</title>
     <link rel="stylesheet" href="../css/controleSala.css">
+    <link rel="stylesheet" href="../css/transitions.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 
-  
+
 </head>
 
 <body>
-   <?php include __DIR__ . '/../components/sidebar.php'; ?>
+    <?php include __DIR__ . '/../components/sidebar.php'; ?>
 
 
     <main class="main-content">
@@ -103,9 +104,10 @@ $iniciais = strtoupper(substr($nomeUsuario, 0, 2));
     </div>
 
     <script src="../js/controleSala.js"></script>
+    <script src="../js/global.js"></script>
 
     <script>
-     
+
     </script>
 </body>
 

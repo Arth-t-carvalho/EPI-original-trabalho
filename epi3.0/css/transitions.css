@@ -1,0 +1,56 @@
+/* =========================================
+   TRANSIÇÕES DE PÁGINA – EPI 3.0
+   Animação de slide: esquerda → direita
+   Sidebar: estática (não é animada)
+   ========================================= */
+
+/* Garante que o conteúdo não vaze horizontalmente durante a animação */
+body {
+    overflow-x: hidden;
+}
+
+/* =========================================
+   KEYFRAMES
+   ========================================= */
+
+/* Entrada: conteúdo vem da direita e se posiciona no centro */
+@keyframes pageSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(60px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Saída: conteúdo sai deslizando para a esquerda */
+@keyframes pageSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(-60px);
+    }
+}
+
+/* =========================================
+   CLASSES DE ESTADO
+   ========================================= */
+
+/* Aplicada ao <main> assim que a página carrega (entrada) */
+main.page-enter {
+    animation: pageSlideIn 0.52s cubic-bezier(0.25, 0.8, 0.25, 1) both;
+}
+
+/* Aplicada ao <main> quando o usuário clica em um link da sidebar (saída) */
+main.page-exit {
+    animation: pageSlideOut 0.38s cubic-bezier(0.55, 0, 0.1, 1) both;
+    pointer-events: none;
+    /* Bloqueia cliques durante a saída */
+}

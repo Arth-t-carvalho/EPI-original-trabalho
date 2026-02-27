@@ -13,12 +13,13 @@ require_once __DIR__ . '/../config/auth.php';
     <title>EPI Guard | Monitoramento</title>
     <link rel="stylesheet" href="../css/Ocorrencia.css">
     <link rel="stylesheet" href="../css/monitoramento.css">
+    <link rel="stylesheet" href="../css/transitions.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
 
- <?php include __DIR__ . '/../components/sidebar.php'; ?>
+    <?php include __DIR__ . '/../components/sidebar.php'; ?>
 
 
     <main class="main-content">
@@ -36,7 +37,7 @@ require_once __DIR__ . '/../config/auth.php';
                     <div class="user-avatar">JS</div>
                 </div>
             </div>
-            </header>
+        </header>
 
         <div class="meet-wrapper" id="meetWrapper">
             <div class="meet-header-info">
@@ -47,7 +48,7 @@ require_once __DIR__ . '/../config/auth.php';
             </div>
 
             <div class="meet-main">
-             <section class="meet-presentation">
+                <section class="meet-presentation">
                     <div class="editor-header">
                         Câmera Principal - Lab B
                     </div>
@@ -57,12 +58,12 @@ require_once __DIR__ . '/../config/auth.php';
                             <h2 style="margin: 0; font-size: 24px; font-weight: 500;">Câmera Desligada</h2>
                             <p style="color: #86868b; font-size: 14px; margin-top: 5px;">Conexão de vídeo interrompida.</p>
                         </div>
-                        
+
                         <img id="camera-feed" src="http://localhost:5000/video_feed" alt="Câmera do Python Ao Vivo" style="position: relative; z-index: 2; transition: opacity 0.3s ease;">
                     </div>
                 </section>
 
-              <aside class="meet-right-panel">
+                <aside class="meet-right-panel">
                     <div class="chat-panel">
                         <div class="chat-header">
                             Infrações Recentes
@@ -71,83 +72,84 @@ require_once __DIR__ . '/../config/auth.php';
                         <div class="chat-subtitle">
                             Monitoramento IA Contínuo Ativado
                         </div>
-                        
+
                         <div class="chat-logs" id="notification-container">
-                            </div>
+                        </div>
                     </div>
                 </aside>
             </div>
 
-          <footer class="meet-footer">
-    <div class="meeting-details">14:58 | lab-b-cam-01</div>
+            <footer class="meet-footer">
+                <div class="meeting-details">14:58 | lab-b-cam-01</div>
 
-    <div class="controls">
-        <div class="layout-menu-container">
-            <button class="btn-meet" onclick="toggleLayoutMenu()">
-                <i data-lucide="layout" size="20"></i>
-            </button>
-            <div class="layout-dropdown" id="layoutDropdown">
-                <div class="layout-option selected" id="opt-default" onclick="setLayout('default')">
-                    <i data-lucide="sidebar" size="16"></i> Modo Padrão
+                <div class="controls">
+                    <div class="layout-menu-container">
+                        <button class="btn-meet" onclick="toggleLayoutMenu()">
+                            <i data-lucide="layout" size="20"></i>
+                        </button>
+                        <div class="layout-dropdown" id="layoutDropdown">
+                            <div class="layout-option selected" id="opt-default" onclick="setLayout('default')">
+                                <i data-lucide="sidebar" size="16"></i> Modo Padrão
+                            </div>
+                            <div class="layout-option" id="opt-expanded" onclick="setLayout('expanded')">
+                                <i data-lucide="maximize" size="16"></i> Câmera Expandida
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-meet btn-end" id="btn-camera" onclick="toggleCamera()">
+                        <i data-lucide="video-off" size="20"></i>
+                    </button>
                 </div>
-                <div class="layout-option" id="opt-expanded" onclick="setLayout('expanded')">
-                    <i data-lucide="maximize" size="16"></i> Câmera Expandida
+
+                <div class="right-tools">
+                    <i data-lucide="settings" size="20"></i>
+                    <i data-lucide="activity" size="20"></i>
                 </div>
-            </div>
-        </div>
-
-        <button class="btn-meet btn-end" id="btn-camera" onclick="toggleCamera()">
-            <i data-lucide="video-off" size="20"></i>
-        </button>
-    </div>
-
-    <div class="right-tools">
-        <i data-lucide="settings" size="20"></i>
-        <i data-lucide="activity" size="20"></i>
-    </div>
-</footer>
+            </footer>
         </div>
 
     </main>
 
     <script src="../js/ocorrencias.js" defer></script>
+    <script src="../js/global.js" defer></script>
     <script>
         // Inicializa os ícones do Lucide
         lucide.createIcons();
 
-       // Controle do Dropdown de Layout
-function toggleLayoutMenu() {
-    const dropdown = document.getElementById('layoutDropdown');
-    dropdown.classList.toggle('active');
-}
+        // Controle do Dropdown de Layout
+        function toggleLayoutMenu() {
+            const dropdown = document.getElementById('layoutDropdown');
+            dropdown.classList.toggle('active');
+        }
 
-// Função para alterar o Layout (Padrão vs Expandido)
-function setLayout(mode) {
-    const wrapper = document.getElementById('meetWrapper');
-    const optDefault = document.getElementById('opt-default');
-    const optExpanded = document.getElementById('opt-expanded');
+        // Função para alterar o Layout (Padrão vs Expandido)
+        function setLayout(mode) {
+            const wrapper = document.getElementById('meetWrapper');
+            const optDefault = document.getElementById('opt-default');
+            const optExpanded = document.getElementById('opt-expanded');
 
-    if (mode === 'expanded') {
-        wrapper.classList.add('layout-expanded');
-        optExpanded.classList.add('selected');
-        optDefault.classList.remove('selected');
-    } else {
-        wrapper.classList.remove('layout-expanded');
-        optDefault.classList.add('selected');
-        optExpanded.classList.remove('selected');
-    }
-    
-    // Fecha o menu após clicar
-    document.getElementById('layoutDropdown').classList.remove('active');
-}
+            if (mode === 'expanded') {
+                wrapper.classList.add('layout-expanded');
+                optExpanded.classList.add('selected');
+                optDefault.classList.remove('selected');
+            } else {
+                wrapper.classList.remove('layout-expanded');
+                optDefault.classList.add('selected');
+                optExpanded.classList.remove('selected');
+            }
 
-// Fecha o dropdown se clicar fora dele
-window.addEventListener('click', function(e) {
-    const container = document.querySelector('.layout-menu-container');
-    if (container && !container.contains(e.target)) {
-        document.getElementById('layoutDropdown').classList.remove('active');
-    }
-});
+            // Fecha o menu após clicar
+            document.getElementById('layoutDropdown').classList.remove('active');
+        }
+
+        // Fecha o dropdown se clicar fora dele
+        window.addEventListener('click', function(e) {
+            const container = document.querySelector('.layout-menu-container');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('layoutDropdown').classList.remove('active');
+            }
+        });
         // <------------------------------------------>
         // LÓGICA DE NOTIFICAÇÕES (BANCO DE DADOS)
         // <------------------------------------------>
@@ -159,12 +161,18 @@ window.addEventListener('click', function(e) {
             card.className = 'infraction-card';
 
             // Tratamento da hora (caso o banco não envie, pega a hora atual do PC)
-            let horaExibicao = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let horaExibicao = new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             if (hora_banco) {
                 // Tenta formatar a data_hora vinda do banco (ex: "2023-10-25 14:30:00")
                 const dataObj = new Date(hora_banco);
                 if (!isNaN(dataObj.getTime())) {
-                    horaExibicao = dataObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    horaExibicao = dataObj.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
                 }
             }
 
@@ -182,38 +190,42 @@ window.addEventListener('click', function(e) {
 
             // Usa prepend para colocar a notificação mais recente no TOPO da lista
             container.prepend(card);
-            
+
             // Renderiza o ícone do lucide no card recém-criado
-            lucide.createIcons({ root: card });
+            lucide.createIcons({
+                root: card
+            });
         }
 
-       function verificarNovasOcorrencias() {
+        function verificarNovasOcorrencias() {
             // Adicionado as crases (`) em volta da URL
             fetch(`../php/check_notificacoes.php?last_id=${ultimoIdNotificacao}`, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("RETORNO COMPLETO:", data);
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log("RETORNO COMPLETO:", data);
 
-                if (data.status === 'init') {
-                    ultimoIdNotificacao = data.last_id;
-                    return;
-                }
+                    if (data.status === 'init') {
+                        ultimoIdNotificacao = data.last_id;
+                        return;
+                    }
 
-                if (data.status === 'success' && data.dados.length > 0) {
-                    data.dados.forEach(ocorrencia => {
-                        mostrarNotificacao(
-                            ocorrencia.aluno,          
-                            ocorrencia.epi_nome,       
-                            ocorrencia.data_hora       
-                        );
-                        // Atualiza o último ID processado
-                        ultimoIdNotificacao = ocorrencia.id;
-                    });
-                }
-            })
-            .catch(err => console.error("Erro na verificação de ocorrências:", err));
+                    if (data.status === 'success' && data.dados.length > 0) {
+                        data.dados.forEach(ocorrencia => {
+                            mostrarNotificacao(
+                                ocorrencia.aluno,
+                                ocorrencia.epi_nome,
+                                ocorrencia.data_hora
+                            );
+                            // Atualiza o último ID processado
+                            ultimoIdNotificacao = ocorrencia.id;
+                        });
+                    }
+                })
+                .catch(err => console.error("Erro na verificação de ocorrências:", err));
         }
 
         // Executa a cada 5 segundos
@@ -233,7 +245,7 @@ window.addEventListener('click', function(e) {
                 cameraFeed.src = ""; // Remove o link, cortando a conexão com o Python
                 cameraFeed.style.opacity = "0"; // Esconde a imagem
                 textOff.style.display = "flex"; // Mostra o texto de câmera desligada
-                
+
                 btnCamera.style.background = "#34c759"; // Botão fica verde
                 icone.setAttribute('data-lucide', 'video'); // Ícone de ligar a câmera
             } else {
@@ -242,16 +254,21 @@ window.addEventListener('click', function(e) {
                 cameraFeed.src = "http://localhost:5000/video_feed?t=" + new Date().getTime();
                 cameraFeed.style.opacity = "1"; // Mostra a imagem
                 textOff.style.display = "none"; // Esconde o texto
-                
+
                 btnCamera.style.background = "#ff3b30"; // Botão volta a ficar vermelho
                 icone.setAttribute('data-lucide', 'video-off'); // Ícone de desligar a câmera
             }
-            
+
             // Atualiza os ícones na tela
-            lucide.createIcons({ root: btnCamera });
-            lucide.createIcons({ root: textOff });
+            lucide.createIcons({
+                root: btnCamera
+            });
+            lucide.createIcons({
+                root: textOff
+            });
         }
     </script>
 
 </body>
+
 </html>

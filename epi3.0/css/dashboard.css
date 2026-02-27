@@ -1991,20 +1991,11 @@ body {
 
 /* Configuração inicial do Main Content */
 
-.main-content, .card, .kpi-grid {
+.main-content,
+.card,
+.kpi-grid {
     will-change: transform;
     backface-visibility: hidden;
 }
 
-/* Animação de Entrada (quando a página carrega) */
-.page-enter-active {
-    animation: slideFromRight 0.5s ease-in-out forwards;
-}
-
-
-
-.page-exit-active {
-    animation: slideToLeft 0.5s ease-in-out forwards;
-    pointer-events: none;
-}
-
+/* As animações de entrada/saída de página estão definidas em transitions.css */
