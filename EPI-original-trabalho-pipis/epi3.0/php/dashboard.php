@@ -113,6 +113,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
     <link rel="stylesheet" href="../css/dashboard.css">
         <link rel="stylesheet" href="../css/nav.css">
         <link rel="stylesheet" href="../css/dark.css">
+        <link rel="stylesheet" href="../css/transitions.css">
         <script src="../js/Dark.js"></script>
 </head>
 

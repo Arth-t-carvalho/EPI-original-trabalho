@@ -15,17 +15,16 @@ $sql_alunos = "SELECT id, nome, curso_id, turno, foto_referencia, imagem FROM al
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPI Guard | Nova Ocorrência</title>
     <link rel="stylesheet" href="../css/Ocorrencia.css">
+    <link rel="stylesheet" href="../css/transitions.css">
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/dark.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="../js/Dark.js"></script>
-        <link rel="stylesheet" href="../css/nav.css">
-        <link rel="stylesheet" href="../css/dark.css">
-
 
 </head>
 
 <body>
+    <?php include __DIR__ . '/../components/sidebar.php'; ?>
 
-     <?php include __DIR__ . '/../components/sidebar.php'; ?>
     <main class="main-content">
 
         <header class="header">
@@ -81,7 +80,7 @@ $sql_alunos = "SELECT id, nome, curso_id, turno, foto_referencia, imagem FROM al
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label class="form-label">Aluno Identificado</label>
-                    <select class="form-select" id="studentNameInput" name="aluno_id" required >
+                    <select class="form-select" id="studentNameInput" name="aluno_id" required>
                         <option value="" disabled selected>Selecione um aluno...</option>
                         <?php
                         // Verifica se retornou algum aluno
@@ -166,6 +165,7 @@ $sql_alunos = "SELECT id, nome, curso_id, turno, foto_referencia, imagem FROM al
 
     </main>
     <script src="../js/ocorrencias.js" defer></script>
+    <script src="../js/global.js" defer></script>
     <script>
         lucide.createIcons();
     </script>

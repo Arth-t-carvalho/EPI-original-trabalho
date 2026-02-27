@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/nav.css">
     <link rel="stylesheet" href="../css/dark.css">
+    <link rel="stylesheet" href="../css/transitions.css">
 </head>
 
 <body>

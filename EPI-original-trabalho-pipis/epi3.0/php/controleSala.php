@@ -22,6 +22,7 @@ $iniciais = strtoupper(substr($nomeUsuario, 0, 2));
     <script src="https://unpkg.com/lucide@latest"></script>
         <link rel="stylesheet" href="../css/nav.css">
         <link rel="stylesheet" href="../css/dark.css">
+        <link rel="stylesheet" href="../css/transitions.css">
         <script src="../js/Dark.js"></script>
 
 

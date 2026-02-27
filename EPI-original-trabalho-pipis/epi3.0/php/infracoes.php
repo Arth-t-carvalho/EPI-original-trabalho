@@ -77,7 +77,8 @@ try {
     <title>EPI Guard | Infrações</title>
     <link rel="stylesheet" href="../css/infracoes.css">
         <link rel="stylesheet" href="../css/nav.css">
-        <link rel="stylesheet" href="../css/dark.css">        
+        <link rel="stylesheet" href="../css/dark.css">  
+        <link rel="stylesheet" href="../css/transitions.css">      
 
         <script src="../js/Dark.js"></script>
 </head>
