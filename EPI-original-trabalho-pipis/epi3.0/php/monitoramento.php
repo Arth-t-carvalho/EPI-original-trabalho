@@ -14,6 +14,7 @@ require_once __DIR__ . '/../config/auth.php';
     <link rel="stylesheet" href="../css/Ocorrencia.css">
     <link rel="stylesheet" href="../css/monitoramento.css">
     <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/dark.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
