@@ -339,28 +339,55 @@ function exportData() {
 }
 
 // Modal de Detalhes (Vem do clique no gráfico)
-function openDetailModal(monthIndex, monthName) {
+function openDetailModal(monthIndex, monthName, filterEpi = null) {
     const modal = document.getElementById('detailModal');
     const title = document.getElementById('modalMonthTitle');
     const tbody = document.getElementById('modalTableBody');
 
     if (!modal) return;
 
+    // Reseta o display e limpa conteúdo anterior
+    modal.style.display = 'flex';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Carregando...</td></tr>';
+
     const realMonth = monthIndex + 1;
     const currentYear = new Date().getFullYear();
 
-    title.innerText = `${monthName} de ${currentYear}`;
+    title.innerText = (filterEpi && filterEpi !== 'Total')
+        ? `${monthName} de ${currentYear} - ${filterEpi}`
+        : `${monthName} de ${currentYear}`;
+
     modal.classList.add('open');
 
     fetch(`../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}`)
         .then(res => res.json())
         .then(data => {
             tbody.innerHTML = '';
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhum registro encontrado.</td></tr>';
+
+            let filteredData = data;
+
+            // Filtro que ignora acentos, espaços e maiúsculas
+            if (filterEpi && filterEpi !== 'Total') {
+                const normalize = (str) =>
+                    str.toLowerCase()
+                        .trim()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "");
+
+                const searchLabel = normalize(filterEpi);
+
+                filteredData = data.filter(row => {
+                    const rowEpi = normalize(row.epis || "");
+                    return rowEpi === searchLabel;
+                });
+            }
+
+            if (!filteredData || filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhum registro de "${filterEpi || 'dados'}" encontrado.</td></tr>`;
                 return;
             }
-            data.forEach(row => {
+
+            filteredData.forEach(row => {
                 const statusTexto = row.status_formatado || row.status;
                 let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
                 tbody.innerHTML += `
@@ -373,7 +400,8 @@ function openDetailModal(monthIndex, monthName) {
                     </tr>`;
             });
         })
-        .catch(() => {
+        .catch(err => {
+            console.error('Erro ao carregar detalhes:', err);
             tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center">Erro na conexão.</td></tr>';
         });
 }
@@ -394,12 +422,20 @@ function loadCharts() {
                         { label: 'Total', data: response.bar.total, backgroundColor: '#9CA3AF', borderRadius: 4 }
                     ]
                 },
+                // Dentro de loadCharts, no objeto do mainChart:
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
                     onClick: (evt, active, chart) => {
                         if (active.length > 0) {
-                            // CHAMA A FUNÇÃO openDetailModal (Lógica sua)
-                            openDetailModal(active[0].index, chart.data.labels[active[0].index]);
+                            const index = active[0].index;
+                            const datasetIndex = active[0].datasetIndex;
+                            const monthName = chart.data.labels[index];
+
+                            // Pega o nome do dataset (Capacete, Óculos ou Total)
+                            const epiLabel = chart.data.datasets[datasetIndex].label;
+
+                            openDetailModal(index, monthName, epiLabel);
                         }
                     }
                 }
@@ -594,10 +630,20 @@ function updatePercentagesDinamicamente() {
 function closeModal() {
     const modal = document.getElementById('detailModal');
     if (modal) {
-        modal.classList.remove('active'); // Remove a classe que mostra o modal
-        // Caso o seu CSS use display: block/none em vez de classes:
+        // Remove todas as possíveis classes de abertura
+        modal.classList.remove('open');
+        modal.classList.remove('active');
+
+        // Garante que o display volte ao normal para não bloquear a tela
         modal.style.display = 'none';
+
+        // Opcional: Limpar a tabela para a próxima abertura
+        const tbody = document.getElementById('modalTableBody');
+        if (tbody) tbody.innerHTML = '';
     }
+}
+function closeDetailModal() {
+    closeModal();
 }
 
 function openAlunosModal() {
@@ -716,43 +762,43 @@ function verificarNovasOcorrencias() {
     fetch(`../php/check_notificacoes.php?last_id=${ultimoIdNotificacao}`, {
         headers: { "X-Requested-With": "XMLHttpRequest" }
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'init') {
-            ultimoIdNotificacao = data.last_id;
-            return;
-        }
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'init') {
+                ultimoIdNotificacao = data.last_id;
+                return;
+            }
 
-        if (data.status === 'success' && data.dados.length > 0) {
-            data.dados.forEach(ocorrencia => {
-                if (ocorrencia.id > ultimoIdNotificacao) {
-                    
-                    // --- CORREÇÃO DO SOM AQUI ---
-                    const som = new Audio('../som/notificacao.mp3');
-                    som.preload = 'auto'; // Força o carregamento prévio
-                    
-                    // Tentativa de tocar
-                    const playPromise = som.play();
+            if (data.status === 'success' && data.dados.length > 0) {
+                data.dados.forEach(ocorrencia => {
+                    if (ocorrencia.id > ultimoIdNotificacao) {
 
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.warn("O som foi bloqueado. Clique em qualquer lugar na página para habilitar o áudio.");
-                        });
+                        // --- CORREÇÃO DO SOM AQUI ---
+                        const som = new Audio('../som/notificacao.mp3');
+                        som.preload = 'auto'; // Força o carregamento prévio
+
+                        // Tentativa de tocar
+                        const playPromise = som.play();
+
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.warn("O som foi bloqueado. Clique em qualquer lugar na página para habilitar o áudio.");
+                            });
+                        }
+                        // ----------------------------
+
+                        mostrarNotificacao(ocorrencia.aluno, ocorrencia.epi_nome);
+                        ultimoIdNotificacao = ocorrencia.id;
                     }
-                    // ----------------------------
+                });
 
-                    mostrarNotificacao(ocorrencia.aluno, ocorrencia.epi_nome);
-                    ultimoIdNotificacao = ocorrencia.id;
-                }
-            });
-
-            if (typeof loadCalendarData === 'function') loadCalendarData();
-            if (typeof updateKPICards === 'function') updateKPICards();
-        }
-    })
-    .catch(err => console.error("Erro:", err));
+                if (typeof loadCalendarData === 'function') loadCalendarData();
+                if (typeof updateKPICards === 'function') updateKPICards();
+            }
+        })
+        .catch(err => console.error("Erro:", err));
 }
-a
+
 // <------------------------------------------>//
 setInterval(verificarNovasOcorrencias, 5000);
 verificarNovasOcorrencias();
@@ -786,9 +832,9 @@ document.addEventListener("DOMContentLoaded", () => {
     mainContent.classList.add('page-active');
 
     navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+        item.addEventListener('click', function (e) {
             const destination = this.getAttribute('href');
-            
+
             // Evita animar se já estiver na página ou se for link vazio
             if (destination && destination !== '#' && !this.classList.contains('active')) {
                 e.preventDefault();
@@ -803,13 +849,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 // 4. Redireciona após a animação acabar
                 setTimeout(() => {
                     window.location.href = destination;
-                }, 400); 
+                }, 400);
             }
         });
     });
 });
 
-       document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     const mainContent = document.querySelector('.main-content');
     const navItems = document.querySelectorAll('.nav-item');
 
@@ -817,11 +863,11 @@ document.addEventListener("DOMContentLoaded", () => {
     mainContent.classList.add('page-enter');
 
     // 2. Prepara o áudio (Use um link de um som curto tipo "whoosh" ou "click")
-    const transitionSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
+    const transitionSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
     transitionSound.volume = 0.3; // Volume 30%
 
     navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+        item.addEventListener('click', function (e) {
             const destination = this.getAttribute('href');
 
             // Se for um link válido e não for a página atual
