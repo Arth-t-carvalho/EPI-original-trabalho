@@ -111,8 +111,9 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/transitions.css">
-
+        <link rel="stylesheet" href="../css/nav.css">
+        <link rel="stylesheet" href="../css/dark.css">
+        <script src="../js/Dark.js"></script>
 </head>
 
 <body>
@@ -226,7 +227,6 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 </div>
 
                 <div class="calendar-nav" onclick="toggleCalendar()"
-                    style="cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);"
                     onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'">
 
                     <button class="nav-btn" onclick="event.stopPropagation(); changeDay(-1)">❮</button>
@@ -280,7 +280,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                                     style="font-size: 13px; font-weight: 600;"><?php echo htmlspecialchars($aluno['nome']); ?></span>
                                 <div class="progress-bar">
                                     <div class="progress-fill"
-                                        style="width: <?php echo $width; ?>%; background: <?php echo $color; ?>; box-shadow: 0 2px 4px rgba(0,0,0, 0.2);">
+                                        style="width: <?php echo $width; ?>%; ">
                                     </div>
                                 </div>
                                 <span style="font-size: 12px; font-weight: bold;"><?php echo $aluno['total']; ?></span>

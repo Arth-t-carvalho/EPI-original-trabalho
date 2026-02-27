@@ -19,6 +19,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span>Dashboard</span>
             </a>
 
+             <a class="nav-item <?= ($current_page == 'monitoramento.php') ? 'active' : ''; ?>" href="monitoramento.php">
+                <i data-lucide="monitor"></i>
+                <span>Monitoramento</span>
+            </a>
+
             <a class="nav-item <?= ($current_page == 'infracoes.php') ? 'active' : ''; ?>" href="infracoes.php">
                 <i data-lucide="alert-triangle"></i>
                 <span>Infrações</span>
@@ -38,10 +43,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <i data-lucide="settings"></i>
                 <span>Configurações</span>
             </a>
-            <a class="nav-item <?= ($current_page == 'monitoramento.php') ? 'active' : ''; ?>" href="monitoramento.php">
-                <i data-lucide="monitor"></i>
-                <span>Monitoramento</span>
-            </a>
+           
 
         </nav>
     </aside>

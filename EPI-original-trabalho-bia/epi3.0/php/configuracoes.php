@@ -9,12 +9,12 @@
     <link rel="stylesheet" href="../css/configuracoes.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/nav.css">
-    <link rel="stylesheet" href="../css/transitions.css">
+    <link rel="stylesheet" href="../css/dark.css">
 </head>
 
 <body>
 
-    <?php include __DIR__ . '/../components/sidebar.php'; ?>
+   <?php include __DIR__ . '/../components/sidebar.php'; ?>
     <main>
         <div id="view-config" class="view-section active">
             <header>
@@ -177,7 +177,7 @@
     <script src="../js/configuracao.js"></script>
     <script src="../js/Dark.js"></script>
     <script src="../js/global.js"></script>
-
+    
 </body>
 
 </html>

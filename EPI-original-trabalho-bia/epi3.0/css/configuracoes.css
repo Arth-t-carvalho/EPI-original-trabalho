@@ -58,56 +58,8 @@
             transition: all 0.3s ease;
         }
 
-        .brand {
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 3rem;
-        }
 
-        .brand span {
-            color: var(--senai-red);
-        }
-
-        .brand-icon {
-            width: 12px;
-            height: 12px;
-            border: 3px solid var(--senai-red);
-            border-radius: 50%;
-        }
-
-        nav ul {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .nav-item {
-            padding: 12px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--text-muted);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
-        }
-
-        .nav-item:hover {
-            background-color: rgba(227, 6, 19, 0.05);
-            color: var(--senai-red);
-        }
-
-        .nav-item.active {
-            background-color: rgba(227, 6, 19, 0.1);
-            color: var(--senai-red);
-            font-weight: 700;
-        }
+      
 
         /* --- Main Content --- */
         main {
@@ -603,8 +555,8 @@
             transform: translateX(22px);
         }
 
-        /* Select dentro dos cards de Configuração */
-        .config-card .form-select {
+        /* Select e Inputs */
+        .form-select {
             padding: 8px;
             border-radius: 6px;
             border: 1px solid var(--border-color);

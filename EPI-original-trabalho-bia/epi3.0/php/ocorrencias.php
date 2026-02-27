@@ -5,7 +5,6 @@ require_once __DIR__ . '/../config/auth.php';
 
 // --- CÓDIGO NOVO: Busca de alunos ---
 $sql_alunos = "SELECT id, nome, curso_id, turno, foto_referencia, imagem FROM alunos ORDER BY nome ASC";
-$result_alunos = mysqli_query($conn, $sql_alunos);
 // ------------------------------------
 ?>
 <!DOCTYPE html>
@@ -16,57 +15,17 @@ $result_alunos = mysqli_query($conn, $sql_alunos);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPI Guard | Nova Ocorrência</title>
     <link rel="stylesheet" href="../css/Ocorrencia.css">
-    <link rel="stylesheet" href="../css/transitions.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/Dark.js"></script>
+        <link rel="stylesheet" href="../css/nav.css">
+        <link rel="stylesheet" href="../css/dark.css">
+
 
 </head>
 
 <body>
 
-    <aside class="sidebar">
-        <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E30613" stroke-width="3"
-                style="filter: drop-shadow(0 2px 4px rgba(227, 6, 19, 0.3));">
-                <circle cx="12" cy="12" r="10" />
-            </svg>
-
-            &nbsp; EPI <span>GUARD</span>
-        </div>
-
-        <nav class="nav-menu">
-
-            <a class="nav-item " href="dashboard.php">
-                <i data-lucide="layout-dashboard"></i>
-                <span>Dashboard</span>
-            </a>
-
-            <a class="nav-item" href="infracoes.php">
-                <i data-lucide="alert-triangle"></i>
-                <span>Infrações</span>
-            </a>
-
-            <a class="nav-item" href="controleSala.php">
-                <i data-lucide="users"></i>
-                <span>Controle de Sala</span>
-            </a>
-
-            <a class="nav-item active" href="ocorrencias.php">
-                <i data-lucide="file-text"></i>
-                <span>Ocorrências</span>
-            </a>
-
-            <a class="nav-item" href="configuracoes.php">
-                <i data-lucide="settings"></i>
-                <span>Configurações</span>
-            </a>
-            <a class="nav-item" href="monitoramento.php">
-                <i data-lucide="monitor"></i>
-                <span>Monitoramento</span>
-            </a>
-
-        </nav>
-    </aside>
-
+     <?php include __DIR__ . '/../components/sidebar.php'; ?>
     <main class="main-content">
 
         <header class="header">
@@ -116,13 +75,13 @@ $result_alunos = mysqli_query($conn, $sql_alunos);
         <form class="form-container" id="incidentForm">
 
             <div class="form-section-title">
-                🚨 Dados da Infração (Automático)
+                 Dados da Infração (Automático)
             </div>
 
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label class="form-label">Aluno Identificado</label>
-                    <select class="form-select" id="studentNameInput" name="aluno_id" required>
+                    <select class="form-select" id="studentNameInput" name="aluno_id" required >
                         <option value="" disabled selected>Selecione um aluno...</option>
                         <?php
                         // Verifica se retornou algum aluno
@@ -157,17 +116,17 @@ $result_alunos = mysqli_query($conn, $sql_alunos);
             </div>
 
             <div class="form-section-title">
-                📝 Ação Tomada
+                 Ação Tomada
             </div>
 
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label class="form-label">Tipo de Registro / Advertência</label>
                     <select class="form-select">
-                        <option value="obs" selected>📌 Adicionar Observação (Padrão)</option>
-                        <option value="adv_verbal">🗣️ Advertência Verbal</option>
-                        <option value="adv_escrita">📄 Advertência Escrita</option>
-                        <option value="suspensao">🚫 Suspensão</option>
+                        <option value="obs" selected> Adicionar Observação (Padrão)</option>
+                        <option value="adv_verbal"> Advertência Verbal</option>
+                        <option value="adv_escrita"> Advertência Escrita</option>
+                        <option value="suspensao"> Suspensão</option>
                     </select>
                 </div>
 
@@ -207,7 +166,6 @@ $result_alunos = mysqli_query($conn, $sql_alunos);
 
     </main>
     <script src="../js/ocorrencias.js" defer></script>
-    <script src="../js/global.js" defer></script>
     <script>
         lucide.createIcons();
     </script>

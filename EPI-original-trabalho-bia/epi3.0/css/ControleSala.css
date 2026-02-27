@@ -39,58 +39,7 @@
             color: var(--text-main);
         }
 
-        /* --- 2. SIDEBAR (PADRÃO NOVO) --- */
-        .sidebar {
-            width: 260px;
-            background: var(--bg-card);
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border);
-            flex-shrink: 0;
-            box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--secondary);
-            margin-bottom: 40px;
-        }
-
-        .brand span {
-            color: var(--primary);
-        }
-
-        .nav-menu {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: 0.2s;
-        }
-
-        .nav-item:hover,
-        .nav-item.active {
-            background-color: var(--primary-light);
-            color: var(--primary);
-            font-weight: 700;
-        }
+       
 
         /* --- 3. MAIN CONTENT & HEADER --- */
         .main-content {
@@ -696,110 +645,76 @@
 
           /* Container dos botões no rodapé do modal */
         /* Container dos botões no rodapé do modal */
-        #modalFooterActions {
-            display: flex;
-            flex-direction: column;
-            /* ALTERADO: agora empilha os botões */
-            gap: 10px;
-            /* Espaçamento entre um botão e outro */
-            padding: 20px;
-            border-top: 1px solid #eee;
-            background: #fff;
-            border-radius: 0 0 12px 12px;
-        }
+
 
         /* Garante que ambos os botões ocupem a largura total */
         /* BOTÃO VER INFRAÇÕES - VERSÃO AMPLIADA */
         /* Estilo Base para AMBOS os botões (Garante tamanho igual) */
-        .btn-view-infracoes,
-        .btn-open-occurrence {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+        /* --- Estilos Base e Compartilhados --- */
+.btn-view-infracoes,
+.btn-open-occurrence {
+    width: 100%; /* Mantém a largura total do container */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Espaçamento uniforme entre o ícone e o texto */
 
-            /* Tamanho Padronizado */
-            padding: 16px;
-            /* Espaçamento interno igual */
-            min-height: 56px;
-            /* Altura mínima idêntica */
-            border-radius: 12px;
-            /* Cantos arredondados iguais */
+    /* Tamanho Reduzido e Elegante */
+    padding: 10px 16px; /* Altura menor, mais delicado */
+    min-height: 42px; /* Reduzido de 56px para um padrão mais moderno */
+    border-radius: 8px; /* Arredondamento mais sutil (era 12px) */
 
-            /* Tipografia Padronizada */
-            font-size: 15px;
-            font-weight: 700;
-            /* Negrito igual */
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+    /* Tipografia Corrigida e Padronizada */
+    font-size: 14px; /* Fonte um pouco menor */
+    font-weight: 600; /* Corrigido: usando peso 600 (Semibold) */
+    letter-spacing: 0.3px; /* Espaçamento de letras mais suave */
 
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
-            /* Removemos bordas padrão */
-        }
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
 
-        /* Ícones Padronizados */
-        .btn-view-infracoes i,
-        .btn-open-occurrence i {
-            width: 20px;
-            height: 20px;
-            stroke-width: 2.5px;
-            /* Ícones mais visíveis */
-        }
+/* Ícones Proporcionais */
+.btn-view-infracoes i,
+.btn-open-occurrence i,
+.btn-view-infracoes svg,
+.btn-open-occurrence svg {
+    width: 18px; /* Ícones levemente menores para acompanhar o botão */
+    height: 18px;
+    stroke-width: 2px; /* Traço mais limpo */
+}
 
-        /* --- Estilos Individuais (Cores) --- */
+/* --- Estilos Individuais (Cores) --- */
 
-        /* 1. Botão Ver Infrações (Estilo Sóbrio/Clean) */
-        .btn-view-infracoes {
-            background-color: #9b9ea1;
-            /* Slate claro */
-            color: #1e293b;
-            /* Slate escuro */
-        }
+/* 1. Botão Ver Infrações (Cinza Moderno) */
+/* 1. Botão Ver Infrações (Cinza Moderno) */
+.btn-view-infracoes {
+    background-color: #f1f5f9; 
+    color: #475569; 
+    border: 1px solid #e2e8f0; 
+    
+    /* ADICIONE ESTA LINHA ABAIXO PARA O ESPAÇAMENTO */
+    margin-bottom: 12px; /* Aumente para 16px ou 20px se quiser ainda mais espaço */
+}
 
-        .btn-view-infracoes:hover {
-            background-color: #e2e8f0;
-            transform: translateY(-1px);
-        }
+.btn-view-infracoes:hover {
+    background-color: #e2e8f0; /* Fica um tom mais escuro ao passar o mouse */
+    color: #1e293b; /* Texto mais forte */
+    transform: translateY(-1px);
+}
 
-        /* 2. Botão Abrir Ocorrência (Estilo Alerta/Vermelho) */
-        .btn-open-occurrence {
-            background-color: #ef4444;
-            /* Vermelho vibrante */
-            color: white;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-        }
+/* 2. Botão Abrir Ocorrência (Vermelho Alerta) */
+.btn-open-occurrence {
+    background-color: #ef4444;
+    color: white;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15); /* Sombra mais leve */
+}
 
-        .btn-open-occurrence:hover {
-            background-color: #dc2626;
-            /* Vermelho mais escuro */
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-        }
-
-        /* Botão Abrir Ocorrência (Estilo Primário/Alerta) */
-        .btn-open-occurrence {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background-color: #DC2626;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-        }
-
-        .btn-open-occurrence:hover {
-            background-color: #B91C1C;
-            transform: translateY(-1px);
-        }
+.btn-open-occurrence:hover {
+    background-color: #dc2626; /* Vermelho um tom mais fechado no hover */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);
+}
 
         /* Ajuste do Modal Overlay para alinhar ao centro */
         .modal-overlay {

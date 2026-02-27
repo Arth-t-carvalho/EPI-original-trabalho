@@ -58,61 +58,7 @@ body {
 }
 
 
-/* =========================================
-   SIDEBAR (BARRA LATERAL)
-   ========================================= */
-.sidebar {
-    width: 260px;
-    background: var(--bg-card);
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    flex-shrink: 0;
-    box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    animation: slideInSidebar 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-}
 
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--secondary);
-    margin-bottom: 40px;
-}
-
-.brand span {
-    color: var(--primary);
-}
-
-.nav-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: var(--text-muted);
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: 0.2s;
-}
-
-.nav-item:hover,
-.nav-item.active {
-    background-color: var(--primary-light);
-    color: var(--primary);
-    font-weight: 700;
-}
 
 /* =========================================
    CONTEÚDO PRINCIPAL (MAIN)
@@ -501,6 +447,8 @@ body {
 .progress-fill {
     height: 100%;
     border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0, 0.2);
+    background: #E30613;
 }
 
 /* =========================================
@@ -1820,6 +1768,7 @@ body {
     /* Box Shadow: Horizontal, Vertical, Desfoque, Espalhamento, Cor */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
         0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
 }
 
 /* Animação de pulo e brilho vermelho */
@@ -1991,11 +1940,20 @@ body {
 
 /* Configuração inicial do Main Content */
 
-.main-content,
-.card,
-.kpi-grid {
+.main-content, .card, .kpi-grid {
     will-change: transform;
     backface-visibility: hidden;
 }
 
-/* As animações de entrada/saída de página estão definidas em transitions.css */
+/* Animação de Entrada (quando a página carrega) */
+.page-enter-active {
+    animation: slideFromRight 0.5s ease-in-out forwards;
+}
+
+
+
+.page-exit-active {
+    animation: slideToLeft 0.5s ease-in-out forwards;
+    pointer-events: none;
+}
+

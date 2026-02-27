@@ -5,23 +5,6 @@
     <meta charset="UTF-8">
     <title>Login - EPI Guard</title>
     <link rel="stylesheet" href="../css/index.css">
-
-    <style>
-        .login-container {
-            transition: transform 0.4s ease, opacity 0.6s ease;
-        }
-
-        .login-container.slide-up {
-            transform: translateY(-100vh);
-            opacity: 0;
-        }
-
-        .erro {
-            color: red;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-    </style>
 </head>
 
 <body>
