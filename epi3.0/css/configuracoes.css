@@ -603,8 +603,8 @@
             transform: translateX(22px);
         }
 
-        /* Select e Inputs */
-        .form-select {
+        /* Select dentro dos cards de Configuração */
+        .config-card .form-select {
             padding: 8px;
             border-radius: 6px;
             border: 1px solid var(--border-color);

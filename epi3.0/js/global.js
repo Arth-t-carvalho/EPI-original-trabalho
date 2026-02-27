@@ -2,6 +2,23 @@
 // ARQUIVO GLOBAL - Funções Compartilhadas
 // ==========================================
 
+// ==========================================
+// DARK MODE – Aplica o tema ANTES do render
+// para evitar "flash" de tela clara
+// ==========================================
+(function () {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.setAttribute('data-theme', 'dark');
+            // Sincroniza o switch na página de configurações
+            const toggle = document.getElementById('toggle-darkmode');
+            if (toggle) toggle.checked = true;
+        });
+    }
+})();
+
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Inicializa os ícones do Lucide automaticamente em todas as páginas
     if (typeof lucide !== 'undefined') {

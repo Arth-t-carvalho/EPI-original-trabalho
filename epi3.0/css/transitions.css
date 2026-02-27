@@ -1,3 +1,7 @@
+/* Importa os estilos de Dark Mode – disponível em todas as páginas via transitions.css */
+@import url('dark.css');
+
+
 /* =========================================
    TRANSIÇÕES DE PÁGINA – EPI 3.0
    Animação de slide: esquerda → direita
