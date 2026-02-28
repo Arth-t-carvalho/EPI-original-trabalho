@@ -3,22 +3,16 @@
    ========================================= */
 :root {
     --primary: #E30613;
-    /* Vermelho SENAI */
     --primary-dark: #bf040f;
     --primary-light: rgba(227, 6, 19, 0.1);
     --secondary: #1F2937;
     --text-main: #111827;
     --text-muted: #64748B;
-
-    /* Fundo e Bordas */
     --bg-body: #e6e8ec;
     --bg-card: #ebebeb;
     --border: #CBD5E1;
-
-    /* Status Colors */
     --success: #10B981;
     --danger: #EF4444;
-
     --radius: 16px;
 }
 
@@ -30,91 +24,10 @@
     flex-direction: column;
     border-right: 1px solid var(--border);
     flex-shrink: 0;
-    z-index: 10;
-}
-
-/* Logo / Brand */
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--secondary);
-    margin-bottom: 40px;
-}
-
-.brand span {
-    color: var(--primary);
-}
-
-/* Menu de Navegação */
-.nav-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-/* =========================================
-   Botões da Navbar (Correção de Ofuscamento)
-   ========================================= */
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: var(--text-muted) !important;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-
-    /* Garante que o botão NUNCA fique ofuscado */
-    opacity: 1 !important;
-    filter: none !important;
-}
-
-/* Efeito ao passar o mouse (Hover) na Sidebar */
-.nav-item:hover {
-    background: rgba(227, 6, 19, 0.08) !important;
-    color: var(--primary) !important;
-    opacity: 1 !important;
-}
-
-/* Botão Ativo na Sidebar (Página Atual) */
-.nav-item.active {
-    background: rgba(227, 6, 19, 0.18) !important;
-    color: var(--primary) !important;
-    font-weight: 700 !important;
-    border-right: 4px solid var(--primary) !important;
-    border-radius: 8px 0px 0px 8px !important;
-
-    /* Garante o botão visível na Dashboard */
-    opacity: 1 !important;
-    filter: none !important;
-}
-
-/* Deixa o ícone do botão ativo mais grossinho e destacado */
-.nav-item.active i,
-.nav-item.active svg {
-    stroke-width: 2.5px !important;
-}
-
-.sidebar {
-    width: 260px;
-    background: var(--bg-card);
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    flex-shrink: 0;
     z-index: 1000;
-    /* Sidebar acima do content */
     box-shadow: 4px 0 15px -5px rgba(0, 0, 0, 0.1);
 }
 
-/* Logo / Brand */
 .brand {
     display: flex;
     align-items: center;
@@ -129,11 +42,11 @@
     color: var(--primary);
 }
 
-/* Menu de Navegação */
 .nav-menu {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .nav-item {
@@ -146,7 +59,8 @@
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease-in-out;
+    /* Removida animação de hover conforme solicitado */
+    transition: none !important;
     opacity: 1 !important;
 }
 
@@ -168,8 +82,27 @@
     stroke-width: 2.5px !important;
 }
 
+.nav-active-indicator {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    background: rgba(227, 6, 19, 0.12);
+    border-right: 4px solid var(--primary);
+    border-radius: 8px 0px 0px 8px;
+    z-index: -1;
+    pointer-events: none;
+    /* Removida animação de deslize conforme solicitado */
+    transition: none !important;
+    opacity: 0;
+}
+
+.nav-active-indicator.ready {
+    opacity: 1;
+}
+
 /* =========================================
-   Ações do Header (Engrenagem/Sino)
+   Header & Ações
    ========================================= */
 .header-actions {
     display: flex;
@@ -187,7 +120,6 @@
     align-items: center;
     justify-content: center;
     color: #64748b;
-    /* Cinza suave */
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -220,16 +152,13 @@
     padding: 0 4px;
     border-radius: 99px;
     display: none;
-    /* Inicia oculto */
     align-items: center;
     justify-content: center;
-    border: none;
-    /* Removida borda branca */
     line-height: 1;
 }
 
 /* =========================================
-   Toast Notifications (Global) - TOP PLACEMENT
+   Toast Notifications
    ========================================= */
 #toast-container {
     position: fixed;
@@ -254,10 +183,7 @@
     min-width: 320px;
     backdrop-filter: blur(8px);
     background: rgba(255, 255, 255, 0.95);
-
-    /* Animação de entrada mais fluida */
     animation: toast-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-
     cursor: pointer;
     pointer-events: auto;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -306,7 +232,6 @@
     font-size: 14px;
     color: var(--secondary);
     margin-bottom: 2px;
-    letter-spacing: -0.01em;
 }
 
 .toast-msg {
@@ -315,7 +240,6 @@
     line-height: 1.4;
 }
 
-/* Keyframes de Entrada (Slide + Fade + Scale) */
 @keyframes toast-in {
     from {
         transform: translateX(100%) translateY(-20px) scale(0.9);
@@ -332,7 +256,6 @@
     animation: toast-out 0.4s cubic-bezier(0.7, 0, 0.84, 0) forwards;
 }
 
-/* Keyframes de Saída (Slide para a Direita + Fade) */
 @keyframes toast-out {
     to {
         transform: translateX(120%);

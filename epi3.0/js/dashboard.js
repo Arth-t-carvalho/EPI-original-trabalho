@@ -518,41 +518,109 @@ function loadCharts() {
     fetch('../apis/api.php?action=charts')
         .then(res => res.json())
         .then(response => {
-            // Verifica se a resposta é um erro de sessão
             if (response.status === 'session_expired' || response.status === 'not_logged') {
-                console.warn("Sessão expirada ao carregar gráficos.");
                 window.location.href = 'index.php';
                 return;
             }
 
-            // Destrói instâncias anteriores se existirem para evitar erros de Canvas
             if (mainChartInstance) mainChartInstance.destroy();
             if (doughnutChartInstance) doughnutChartInstance.destroy();
 
-            // BAR CHART
+            // Pega as cores personalizadas
+            const colorAll = localStorage.getItem('chartColor_all') || '#E30613';
+            const colorHelmet = localStorage.getItem('chartColor_helmet') || '#1F2937';
+            const colorGlasses = localStorage.getItem('chartColor_glasses') || '#9CA3AF';
+
+            // Pega o tipo de gráfico (bar ou line)
+            const chartType = localStorage.getItem('chartType') || 'bar';
+
+            // BAR / LINE CHART
             const ctxMain = document.getElementById('mainChart').getContext('2d');
             mainChartInstance = new Chart(ctxMain, {
-                type: 'bar',
+                type: chartType,
                 data: {
                     labels: monthsFull,
                     datasets: [
-                        { label: 'Capacete', data: response.bar.capacete, backgroundColor: '#E30613', borderRadius: 4 },
-                        { label: 'Óculos', data: response.bar.oculos, backgroundColor: '#1F2937', borderRadius: 4 },
-                        { label: 'Total', data: response.bar.total, backgroundColor: '#9CA3AF', borderRadius: 4 }
+                        {
+                            label: 'Capacete',
+                            data: response.bar.capacete,
+                            backgroundColor: colorHelmet,
+                            borderColor: colorHelmet,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        },
+                        {
+                            label: 'Óculos',
+                            data: response.bar.oculos,
+                            backgroundColor: colorGlasses,
+                            borderColor: colorGlasses,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        },
+                        {
+                            label: 'Total',
+                            data: response.bar.total,
+                            backgroundColor: colorAll,
+                            borderColor: colorAll,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     onClick: (evt, active, chart) => {
-                        if (active.length > 0) {
-                            const barIndex = active[0].index;
-                            const datasetIndex = active[0].datasetIndex;
-                            const label = chart.data.datasets[datasetIndex].label;
+                        // No gráfico de linha ou barra, pegamos o index do ponto clicado (ou barra)
+                        const points = chart.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+                        if (points.length > 0) {
+                            const monthIndex = points[0].index;
 
-                            // Se clicou no "Total", não passa filtro de EPI
-                            const filterEPI = label === 'Total' ? '' : label;
+                            // Tenta identificar se o usuário clicou em um dataset específico
+                            // senão, assume que quer ver o total do mês
+                            const exactPoints = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                            let filterEPI = '';
+                            if (exactPoints.length > 0) {
+                                const datasetIndex = exactPoints[0].datasetIndex;
+                                const label = chart.data.datasets[datasetIndex].label;
+                                filterEPI = label === 'Total' ? '' : label;
+                            }
 
-                            openDetailModal(barIndex, monthsFull[barIndex], filterEPI);
+                            openDetailModal(monthIndex, monthsFull[monthIndex], filterEPI);
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
@@ -566,7 +634,7 @@ function loadCharts() {
                     labels: response.doughnut.labels,
                     datasets: [{
                         data: response.doughnut.data,
-                        backgroundColor: ['#E30613', '#1F2937', '#9CA3AF'],
+                        backgroundColor: [colorHelmet, colorGlasses, colorAll],
                         borderWidth: 2
                     }]
                 },
@@ -584,10 +652,7 @@ function loadCharts() {
         })
         .catch(err => {
             console.error('Erro gráficos:', err);
-            // Tenta recarregar uma vez após um pequeno delay se for erro de rede/timeout
-            setTimeout(() => {
-                if (!mainChartInstance) loadCharts();
-            }, 3000);
+            setTimeout(() => { if (!mainChartInstance) loadCharts(); }, 3000);
         });
 }
 

@@ -52,15 +52,24 @@ function toggleStatus() {
 // 5 e 6. Gráficos (Tipo e Cor)
 // ==========================================
 function changeChartType(type) {
-    document.getElementById('chart-donut').style.display = 'none';
-    document.getElementById('chart-bar').style.display = 'none';
-    document.getElementById('chart-line').style.display = 'none';
-
-    if (type === 'donut') document.getElementById('chart-donut').style.display = 'flex';
-    if (type === 'bar') document.getElementById('chart-bar').style.display = 'flex';
-    if (type === 'line') document.getElementById('chart-line').style.display = 'block';
-
     localStorage.setItem('chartType', type);
+}
+
+function changeIndividualChartColor(type, value) {
+    localStorage.setItem(`chartColor_${type}`, value);
+}
+
+function resetChartColors() {
+    if (!confirm("Deseja restaurar as cores originais dos gráficos?")) return;
+
+    localStorage.removeItem('chartColor_all');
+    localStorage.removeItem('chartColor_helmet');
+    localStorage.removeItem('chartColor_glasses');
+
+    // Atualiza os inputs na tela
+    document.getElementById('color-all').value = '#E30613';
+    document.getElementById('color-helmet').value = '#1F2937';
+    document.getElementById('color-glasses').value = '#9CA3AF';
 }
 
 function changeChartColor(color) {
@@ -95,6 +104,22 @@ document.addEventListener('DOMContentLoaded', () => {
         statusToggle.checked = localStorage.getItem('showStatusBadges') !== 'false';
     }
 
+    // Inicializa Tipo de Gráfico
+    const chartTypeSelect = document.querySelector('select[onchange="changeChartType(this.value)"]');
+    if (chartTypeSelect) {
+        chartTypeSelect.value = localStorage.getItem('chartType') || 'bar';
+    }
+
+    // Inicializa Cores
+    const colorAll = document.getElementById('color-all');
+    if (colorAll) colorAll.value = localStorage.getItem('chartColor_all') || '#E30613';
+
+    const colorHelmet = document.getElementById('color-helmet');
+    if (colorHelmet) colorHelmet.value = localStorage.getItem('chartColor_helmet') || '#1F2937';
+
+    const colorGlasses = document.getElementById('color-glasses');
+    if (colorGlasses) colorGlasses.value = localStorage.getItem('chartColor_glasses') || '#9CA3AF';
+
     // Inicializa visibilidade globalmente ao carregar a página
-    applyPercentageVisibility();
+    if (typeof applyPercentageVisibility === 'function') applyPercentageVisibility();
 });

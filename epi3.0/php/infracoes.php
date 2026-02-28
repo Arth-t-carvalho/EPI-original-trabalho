@@ -26,13 +26,15 @@ try {
             a.id AS aluno_id,
             c.nome AS aluno_curso,
             e.nome AS epi_nome,
-            ev.imagem AS foto_caminho 
+            ev.imagem AS foto_caminho,
+            CASE WHEN ac.id IS NOT NULL THEN 1 ELSE 0 END AS is_assinada
         FROM ocorrencias o
         JOIN alunos a ON a.id = o.aluno_id
         LEFT JOIN cursos c ON c.id = a.curso_id
         JOIN epis e ON e.id = o.epi_id
         LEFT JOIN evidencias ev ON ev.ocorrencia_id = o.id 
-        WHERE a.curso_id = ?
+        LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
+        WHERE a.curso_id = ? AND o.oculto = 0
     ";
 
     // Filtros de Data
@@ -51,7 +53,7 @@ try {
         $sql .= " AND o.epi_id = ?";
     }
 
-    $sql .= " ORDER BY o.data_hora DESC LIMIT 100";
+    $sql .= " GROUP BY o.id ORDER BY o.data_hora DESC LIMIT 100";
 
     // 1.3 Execução com Prepared Statement (MySQLi)
     $stmt = $conn->prepare($sql);
@@ -152,12 +154,22 @@ else: ?>
         $horaF = $dataObj->format('H:i');
         $dataF = $dataObj->format('d/m/Y');
 ?>
-                        <div class="violation-card" onclick="openModalPHP('<?php echo $imgSrc; ?>', '<?php echo $nomeSafe; ?>', '<?php echo $epiSafe; ?>', '<?php echo $horaF; ?>', '<?php echo $dataF; ?>', '<?php echo $item['aluno_id']; ?>', '<?php echo $item['id']; ?>')">
+                        <div class="violation-card" id="card-<?php echo $item['id']; ?>" onclick="openModalPHP('<?php echo $imgSrc; ?>', '<?php echo $nomeSafe; ?>', '<?php echo $epiSafe; ?>', '<?php echo $horaF; ?>', '<?php echo $dataF; ?>', '<?php echo $item['aluno_id']; ?>', '<?php echo $item['id']; ?>', <?php echo $item['is_assinada']; ?>)">
+                            <?php if ($item['is_assinada']): ?>
+                                <button class="btn-dismiss" title="Remover da vista" onclick="event.stopPropagation(); dismissOccurrence(<?php echo $item['id']; ?>)">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            <?php endif; ?>
                             <div class="card-image-wrapper">
                                 <img src="<?php echo $imgSrc; ?>" class="card-image" loading="lazy">
                             </div>
                             <div class="card-content">
-                                <span class="violation-tag"><?php echo $epiSafe; ?></span>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="violation-tag"><?php echo $epiSafe; ?></span>
+                                    <?php if ($item['is_assinada']): ?>
+                                        <span class="status-assinada">Assinado</span>
+                                    <?php endif; ?>
+                                </div>
                                 <span class="infrator-name"><?php echo $nomeSafe; ?></span>
                                 <div class="timestamp"><?php echo $horaF; ?> • <?php echo $setorSafe; ?></div>
                             </div>
@@ -189,6 +201,15 @@ endif; ?>
 
     <script>
         // lucide.createIcons() já é chamado no infraçoes.js
+        window.addEventListener('load', () => {
+            const container = document.getElementById('cardsContainer');
+            if (container) {
+                // Pequeno delay para garantir que a transição de página já começou
+                setTimeout(() => {
+                    container.classList.add('ready');
+                }, 100);
+            }
+        });
     </script>
 </body>
 </html>

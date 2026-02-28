@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // --- FUNÇÃO DO MODAL (Chamada pelo PHP) ---
-function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorrenciaId) {
+function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorrenciaId, isAssinada = 0) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImg');
     const modalName = document.getElementById('modalName');
@@ -94,20 +94,65 @@ function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorr
 
     // 2. Configura o botão de assinar
     if (btnAssinar) {
-        btnAssinar.onclick = function () {
-            const params = new URLSearchParams({
-                ocorrencia_id: ocorrenciaId,
-                aluno_id: alunoId,
-                epi: epi,
-                data: dataCompleta,
-                hora: horaTexto
-            });
-            window.location.href = `ocorrencias.php?${params.toString()}`;
-        };
+        if (isAssinada) {
+            btnAssinar.innerText = "ASSINADO";
+            btnAssinar.disabled = true;
+            btnAssinar.style.background = "#ecfdf5";
+            btnAssinar.style.color = "#059669";
+            btnAssinar.style.border = "1px solid #059669";
+            btnAssinar.style.cursor = "default";
+            btnAssinar.onclick = null;
+        } else {
+            btnAssinar.innerText = "Assinar Ocorrência";
+            btnAssinar.disabled = false;
+            btnAssinar.style = ""; // Reseta estilos
+            btnAssinar.onclick = function () {
+                const params = new URLSearchParams({
+                    ocorrencia_id: ocorrenciaId,
+                    aluno_id: alunoId,
+                    epi: epi,
+                    data: dataCompleta,
+                    hora: horaTexto
+                });
+                window.location.href = `ocorrencias.php?${params.toString()}`;
+            };
+        }
     }
 
     // 3. Mostra o modal
     modal.classList.add('active');
+}
+
+// --- FUNÇÃO DE DISPENSAR OCORRÊNCIA ---
+function dismissOccurrence(id) {
+    if (!confirm("Deseja remover esta infração da sua visualização?")) return;
+
+    const formData = new FormData();
+    formData.append('ocorrencia_id', id);
+
+    fetch('../apis/api.php?action=dismiss_occurrence', {
+        method: 'POST',
+        body: formData
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.getElementById(`card-${id}`);
+                if (card) {
+                    card.style.transform = "scale(0.8)";
+                    card.style.opacity = "0";
+                    setTimeout(() => {
+                        card.remove();
+                    }, 300);
+                }
+            } else {
+                alert("Erro ao ocultar infração: " + (data.error || "Erro desconhecido"));
+            }
+        })
+        .catch(err => {
+            console.error("Erro:", err);
+            alert("Erro na conexão com o servidor.");
+        });
 }
 
 function closeModal(event) {

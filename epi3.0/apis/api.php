@@ -212,6 +212,26 @@ try {
         exit;
     }
 
+    // 6. DISPENSAR OCORRÊNCIA (Ocultar do front)
+    if ($action === 'dismiss_occurrence') {
+        $ocorrenciaId = (int)($_POST['ocorrencia_id'] ?? 0);
+        if ($ocorrenciaId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'ID inválido.']);
+            exit;
+        }
+
+        $sql = "UPDATE ocorrencias SET oculto = 1 WHERE id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $ocorrenciaId);
+
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => mysqli_error($conn)]);
+        }
+        exit;
+    }
+
     // 5. LISTA DE ALUNOS
     if (empty($action)) {
         $sqlAlunos = "SELECT a.id, a.nome, c.nome as curso_nome FROM alunos a 

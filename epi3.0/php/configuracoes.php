@@ -67,28 +67,52 @@
                 </div>
 
                 <div class="config-card">
-                    <div class="config-header"><i data-lucide="pie-chart"></i> Gráfico de EPIs</div>
+                    <div class="config-header"><i data-lucide="pie-chart"></i> Personalização de Gráficos</div>
 
                     <div class="control-row">
                         <div class="control-label">
                             <span>Tipo de Gráfico</span>
-                            <small>Altera visual do fieldset</small>
+                            <small>Selecione o estilo visual preferido</small>
                         </div>
                         <select class="form-select" onchange="changeChartType(this.value)">
-                            <option value="donut">Rosca</option>
-                            <option value="bar">Barras</option>
-                            <option value="line">Linha</option>
+                            <option value="bar">Colunas</option>
+                            <option value="line">Linhas</option>
                         </select>
                     </div>
 
-                    <div class="control-row">
-                        <div class="control-label">
-                            <span>Cor do Destaque</span>
-                            <small>Muda cor dos gráficos</small>
+                    <div class="color-setting-group">
+                        <p class="group-label">Esquema de Cores</p>
+                        
+                        <div class="color-row">
+                            <div class="color-info">
+                                <span>Geral / Total</span>
+                                <small>Cor principal e somatórios</small>
+                            </div>
+                            <input type="color" id="color-all" value="#E30613" onchange="changeIndividualChartColor('all', this.value)">
                         </div>
-                        <input type="color" value="#E30613" onchange="changeChartColor(this.value)">
+
+                        <div class="color-row">
+                            <div class="color-info">
+                                <span>Capacete</span>
+                                <small>Dados específicos de capacetes</small>
+                            </div>
+                            <input type="color" id="color-helmet" value="#1F2937" onchange="changeIndividualChartColor('helmet', this.value)">
+                        </div>
+
+                        <div class="color-row">
+                            <div class="color-info">
+                                <span>Óculos</span>
+                                <small>Dados específicos de óculos</small>
+                            </div>
+                            <input type="color" id="color-glasses" value="#9CA3AF" onchange="changeIndividualChartColor('glasses', this.value)">
+                        </div>
+
+                        <button class="btn-reset-colors" onclick="resetChartColors()">
+                            <i data-lucide="rotate-ccw"></i> Restaurar Padrão
+                        </button>
                     </div>
                 </div>
+
 
                 <div class="config-card">
                     <div class="config-header"><i data-lucide="mouse-pointer"></i> Interatividade</div>
@@ -163,6 +187,18 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Sons e Transições</span>
+                            <small>Sons e efeitos visuais ao mudar de página</small>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-nav-sound" checked onchange="toggleNavSound(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
 
                     <div class="control-row">
                         <div class="control-label">

@@ -44,6 +44,33 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span>Configurações</span>
             </a>
            
+            <!-- Indicador Deslizante -->
+            <div class="nav-active-indicator" id="navIndicator"></div>
 
         </nav>
     </aside>
+
+    <script>
+        (function() {
+            const menu = document.querySelector('.nav-menu');
+            const indicator = document.getElementById('navIndicator');
+            const activeItem = menu.querySelector('.nav-item.active');
+
+            if (activeItem && indicator) {
+                const updateIndicator = (target) => {
+                    const top = target.offsetTop;
+                    const height = target.offsetHeight;
+                    
+                    indicator.style.transform = `translateY(${top}px)`;
+                    indicator.style.height = `${height}px`;
+                    indicator.classList.add('ready');
+                };
+
+                // Posição Inicial Instantânea
+                updateIndicator(activeItem);
+
+                // No mais, mantemos o listener apenas se o usuário desejar voltar a ter animação no futuro, 
+                // mas por agora a CSS já removeu a transition.
+            }
+        })();
+    </script>

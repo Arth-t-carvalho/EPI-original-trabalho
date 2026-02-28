@@ -221,7 +221,7 @@
             padding: 32px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border);
-            max-width: 1000px;
+            max-width: 100%;
             width: 100%;
         }
 
@@ -410,10 +410,21 @@
             cursor: pointer;
             border: none;
             font-size: 14px;
-            transition: 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(0.96);
         }
 
         .btn-cancel {
@@ -425,6 +436,7 @@
         .btn-cancel:hover {
             background: #F1F5F9;
             color: var(--secondary);
+            border-color: var(--secondary);
         }
 
         .btn-submit {
@@ -435,5 +447,5 @@
 
         .btn-submit:hover {
             background: var(--primary-dark);
-            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(227, 6, 19, 0.4);
         }

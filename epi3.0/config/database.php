@@ -5,10 +5,11 @@ $host = "localhost";
 $db = "epi_guard";
 $user = "root";
 $pass = "";
+$port = "3308";
 
 
 // Cria a conexão usando MySQLi (Mais leve que PDO)
-$conn = mysqli_connect($host, $user, $pass, $db);
+$conn = mysqli_connect($host, $user, $pass, $db, $port);
 
 // Verifica se houve erro
 if (!$conn) {

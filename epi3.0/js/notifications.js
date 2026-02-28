@@ -42,13 +42,14 @@ function updateNotificationBadge() {
 
                             // Toca o som apenas uma vez por lote de notificações
                             if (soundEnabled && !alertPlayed) {
-                                // Tenta carregar o som de forma flexível (relativo à página em /php/)
-                                const som = new Audio('../som/notificacao.mp3');
-                                som.volume = 1.0;
-                                som.load();
-                                som.play().catch(e => {
-                                    console.warn("Áudio da notificação bloqueado pelo navegador. É necessário interação prévia com a página.");
-                                });
+                                if (typeof window.playUISound === 'function') {
+                                    window.playUISound('ping');
+                                } else {
+                                    // Fallback para arquivo se o motor global não estiver disponível
+                                    const som = new Audio('../som/notificacao.mp3');
+                                    som.volume = 1.0;
+                                    som.play().catch(e => console.warn("Áudio bloqueado"));
+                                }
                                 alertPlayed = true;
                             }
                         }
@@ -78,9 +79,12 @@ function showToast(aluno, epi, id) {
     // Cria container se não existir
     let container = document.getElementById('toast-container');
     if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        document.body.appendChild(container);
+        container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
     }
 
     const toast = document.createElement('div');
@@ -122,9 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Funções utilitárias
 function testNotificationSound() {
-    const som = new Audio('../som/notificacao.mp3');
-    som.volume = 1.0;
-    som.load();
-    som.play().catch(e => alert("O navegador bloqueou o som. Clique na página e tente de novo."));
+    if (typeof window.playUISound === 'function') {
+        window.playUISound('ping');
+    } else {
+        const som = new Audio('../som/notificacao.mp3');
+        som.volume = 1.0;
+        som.play().catch(e => alert("O navegador bloqueou o som. Clique na página e tente de novo."));
+    }
 }
+
 
