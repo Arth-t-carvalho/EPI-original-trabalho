@@ -1,0 +1,41 @@
+/* --- transitions.css Optimized --- */
+
+/* 1. Estado Base: Oculto para evitar flash de conteúdo desposicionado */
+.main-content {
+    opacity: 0;
+    transform: translateX(15px);
+    transition: opacity 0.35s ease-out, transform 0.35s cubic-bezier(0.2, 0, 0.2, 1);
+    will-change: opacity, transform;
+    /* Otimização de GPU */
+}
+
+/* 2. Animação de Entrada (Slide In da Direita) */
+.main-content.page-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* 3. Animação de Saída (Slide Out para a Esquerda) */
+.main-content.page-exit {
+    opacity: 0 !important;
+    transform: translateX(-15px) !important;
+}
+
+/* 4. Sidebar Estática e Blindada */
+.sidebar {
+    position: relative;
+    z-index: 2000;
+    /* Sempre acima do conteúdo em transição */
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Scroll fluído global */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Evita barra de scroll horizontal durante o slide */
+body {
+    overflow-x: hidden;
+}
