@@ -34,6 +34,18 @@ function loadAlunos(search = '') {
                         <td>#${aluno.id}</td>
                         <td style="font-weight: 600;">${aluno.nome}</td>
                         <td>${aluno.curso_nome}</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 4px; justify-content: center;">
+                                ${(() => {
+                        const avg = parseFloat(aluno.daily_avg) || 0;
+                        let icons = '';
+                        if (avg > 1) icons += '<i data-lucide="alert-triangle" style="width:16px; color: #eab308;" title="Média > 1/dia"></i>';
+                        if (avg > 5) icons += '<i data-lucide="alert-circle" style="width:16px; color: #f97316;" title="Média > 5/dia"></i>';
+                        if (avg > 10) icons += '<i data-lucide="alert-octagon" style="width:16px; color: #ef4444;" title="Média > 10/dia"></i>';
+                        return icons || '<span style="color: #10b981; font-size: 11px;">Baixo Risco</span>';
+                    })()}
+                            </div>
+                        </td>
                         <td style="text-align: right;">
                             <div class="action-btns" style="justify-content: flex-end;">
                                 <button class="btn-icon btn-edit" onclick='editAluno(${JSON.stringify(aluno)})' title="Editar">

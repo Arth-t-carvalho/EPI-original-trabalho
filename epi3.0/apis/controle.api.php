@@ -43,6 +43,10 @@ try {
             (SELECT COUNT(*) FROM ocorrencias WHERE aluno_id = a.id AND DATE(data_hora) = CURDATE() AND tipo = 0) as infractions_today,
             -- Total histórico de infrações
             (SELECT COUNT(*) FROM ocorrencias WHERE aluno_id = a.id AND tipo = 0) as history_total,
+            -- Média de infrações diárias
+            (SELECT COALESCE(COUNT(*) / NULLIF(COUNT(DISTINCT DATE(data_hora)), 0), 0) 
+             FROM ocorrencias 
+             WHERE aluno_id = a.id AND tipo = 0) as daily_avg,
             -- Verifica se há algum EPI cujo último registro é uma infração (tipo=0)
             (SELECT GROUP_CONCAT(e_inner.nome)
              FROM epis e_inner
@@ -103,6 +107,7 @@ try {
             'missing'       => $row['missing_epis_persistento'] ? explode(',', $row['missing_epis_persistento']) : [],
             'history_count' => (int)$row['history_total'],
             'infractions_today' => (int)$row['infractions_today'],
+            'daily_avg'     => (float)$row['daily_avg'],
             'status'        => $status
         ];
     }

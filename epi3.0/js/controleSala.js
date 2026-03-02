@@ -11,6 +11,15 @@ const modal = document.getElementById('detailModal');
 // 2. BUSCA DE DADOS (API)
 // ==========================================
 async function fetchStudents() {
+    const cursoId = document.getElementById('courseFilter')?.value;
+    if (!cursoId) {
+        // Se não tem curso selecionado, garante que mostre a mensagem de boas-vindas
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+    }
+
+    const status = document.getElementById('statusFilter')?.value || 'all';
+
     listContainer.innerHTML = '<div style="padding:20px; text-align:center;">🔄 Conectando ao sistema...</div>';
 
     // Parâmetros de Filtro
@@ -119,6 +128,7 @@ function renderList(filterText = '') {
             </div>
             ${state !== 'Safe' ? `<div style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; padding: 4px 8px; border-radius: 6px;">${icon}</div>` : ''}
         `;
+
         listContainer.appendChild(card);
     });
 
@@ -273,6 +283,33 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 });
+
+// --- Modal de Seleção de Cursos ---
+function openCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function selectCourse(id, nome) {
+    const filterInput = document.getElementById('courseFilter');
+    if (filterInput) {
+        filterInput.value = id;
+
+        // Atualiza o subtítulo da página
+        const courseDisplay = document.querySelector('.page-title p');
+        if (courseDisplay) {
+            courseDisplay.innerHTML = `Curso: ${nome} • Monitoramento em Tempo Real`;
+        }
+
+        fetchStudents();
+        closeCourseModal();
+    }
+}
 
 function toggleInstructorCard() {
     const card = document.getElementById('instructorCard');

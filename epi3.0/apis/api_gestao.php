@@ -20,7 +20,10 @@ try {
     // 1. LISTAR ALUNOS
     if ($action === 'list_alunos') {
         $search = $_GET['search'] ?? '';
-        $sql = "SELECT a.id, a.nome, a.curso_id, a.turno, a.foto_referencia, c.nome as curso_nome 
+        $sql = "SELECT a.id, a.nome, a.curso_id, a.turno, a.foto_referencia, c.nome as curso_nome,
+                (SELECT COALESCE(COUNT(*) / NULLIF(COUNT(DISTINCT DATE(data_hora)), 0), 0) 
+                 FROM ocorrencias 
+                 WHERE aluno_id = a.id AND tipo = 0) as daily_avg
                 FROM alunos a 
                 LEFT JOIN cursos c ON c.id = a.curso_id 
                 WHERE a.nome LIKE ? 

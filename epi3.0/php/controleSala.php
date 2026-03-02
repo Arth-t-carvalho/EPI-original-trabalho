@@ -12,8 +12,36 @@ $isSuperAdmin = (isset($_SESSION['cargo']) && $_SESSION['cargo'] === 'super_admi
 
 $listaCursos = [];
 if ($isSuperAdmin) {
-    $resCursosList = mysqli_query($conn, "SELECT id, nome FROM cursos ORDER BY nome ASC");
-    while ($c = mysqli_fetch_assoc($resCursosList)) $listaCursos[] = $c;
+    // Busca cursos com conformidade calculada (baseada em riscos ativos hoje)
+    $sqlCursos = "SELECT 
+        c.id, 
+        c.nome,
+        (SELECT COUNT(*) FROM alunos a2 WHERE a2.curso_id = c.id) as total_alunos,
+        (SELECT COUNT(DISTINCT o.aluno_id) 
+         FROM ocorrencias o 
+         JOIN alunos a3 ON o.aluno_id = a3.id 
+         WHERE a3.curso_id = c.id 
+         AND DATE(o.data_hora) = CURDATE() 
+         AND o.tipo = 0
+         AND NOT EXISTS (
+             SELECT 1 FROM ocorrencias o2 
+             WHERE o2.aluno_id = o.aluno_id 
+             AND o2.epi_id = o.epi_id 
+             AND o2.data_hora > o.data_hora 
+             AND o2.tipo = 1
+         )
+        ) as alunos_com_risco
+    FROM cursos c
+    ORDER BY c.nome ASC";
+    
+    $resCursosList = mysqli_query($conn, $sqlCursos);
+    while ($c = mysqli_fetch_assoc($resCursosList)) {
+        $totalAlunos = (int)$c['total_alunos'];
+        $comRisco = (int)$c['alunos_com_risco'];
+        $conformidade = ($totalAlunos > 0) ? (($totalAlunos - $comRisco) / $totalAlunos) * 100 : 100;
+        $c['conformidade'] = round($conformidade, 1);
+        $listaCursos[] = $c;
+    }
 }
 
 // Busca informações do curso atual para o título
@@ -112,18 +140,21 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
                     </select>
 
                     <?php if ($isSuperAdmin): ?>
-                        <select class="filter-select" id="courseFilter" onchange="fetchStudents()">
-                            <option value="todos">Todos os Cursos</option>
-                            <?php foreach ($listaCursos as $c): ?>
-                                <option value="<?= $c['id']; ?>"><?= htmlspecialchars($c['nome']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <button class="btn-api-action" onclick="openCourseModal()" style="display: flex; align-items: center; gap: 8px; background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                            <i data-lucide="book-open" style="width: 18px;"></i>
+                            Trocar Curso
+                        </button>
+                        <input type="hidden" id="courseFilter" value="">
                     <?php endif; ?>
                 </div>
 
                 <div class="student-list" id="studentList">
-                    <p style="text-align:center; padding: 20px; color: #666;">Carregando alunos...</p>
+                    <p style="text-align:center; padding: 40px; color: #64748b; background: white; border-radius: 12px; border: 2px dashed #e2e8f0;">
+                        <i data-lucide="info" style="width: 24px; margin-bottom: 8px;"></i><br>
+                        Selecione um curso no botão acima para visualizar os alunos.
+                    </p>
                 </div>
+
             </div>
         </div>
     </main>
@@ -147,11 +178,69 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
         </div>
     </div>
 
+    <!-- Novo Modal de Seleção de Cursos -->
+    <div class="modal-overlay" id="courseSelectionModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin:0; font-size:18px;">Selecionar Curso</h2>
+                    <small style="color:#666;">Escolha um curso para monitorar</small>
+                </div>
+                <button class="close-btn" onclick="closeCourseModal()">✕</button>
+            </div>
+
+            <div style="padding: 20px; max-height: 500px; overflow-y: auto;">
+                <table class="data-table" style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Curso</th>
+                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: center;">Alertas</th>
+                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: right;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($listaCursos as $c): ?>
+                            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 14px;">
+                                    <div style="font-weight: 600; color: #1e293b;"><?= htmlspecialchars($c['nome']); ?></div>
+                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 2px;"><?= $c['conformidade']; ?>% de Conformidade</div>
+                                    <div style="height: 4px; width: 100%; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                                        <?php 
+                                        $barColor = '#10b981'; // Verde default
+                                        if ($c['conformidade'] < 50) $barColor = '#ef4444';
+                                        elseif ($c['conformidade'] < 75) $barColor = '#f97316';
+                                        elseif ($c['conformidade'] < 95) $barColor = '#eab308';
+                                        ?>
+                                        <div style="height: 100%; width: <?= $c['conformidade']; ?>%; background: <?= $barColor; ?>; transition: width 0.5s ease;"></div>
+                                    </div>
+                                </td>
+                                <td style="padding: 14px; text-align: center;">
+                                    <div style="display: flex; gap: 4px; justify-content: center;">
+                                        <?php 
+                                        $conf = $c['conformidade'];
+                                        // Amarelo (< 95%)
+                                        if ($conf < 95) echo '<i data-lucide="alert-triangle" style="width:16px; color: #eab308;" title="Aviso"></i>';
+                                        // Laranja (< 75%)
+                                        if ($conf < 75) echo '<i data-lucide="alert-circle" style="width:16px; color: #f97316;" title="Alerta"></i>';
+                                        // Vermelho (< 50%)
+                                        if ($conf < 50) echo '<i data-lucide="alert-octagon" style="width:16px; color: #ef4444;" title="Crítico"></i>';
+                                        
+                                        if ($conf >= 95) echo '<i data-lucide="shield-check" style="width:16px; color: #10b981;" title="Seguro"></i>';
+                                        ?>
+                                    </div>
+                                </td>
+                                <td style="padding: 14px; text-align: right;">
+                                    <button onclick="selectCourse('<?= $c['id']; ?>', '<?= addslashes($c['nome']); ?>')" class="btn-verify" style="padding: 8px 16px; font-size: 0.75rem; border-radius: 6px;">Selecionar</button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/controleSala.js"></script>
-    <script src="../js/notifications.js" defer></script>
-
-
-    <script></script>
     <script src="../js/notifications.js" defer></script>
 </body>
 

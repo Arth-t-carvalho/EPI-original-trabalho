@@ -103,6 +103,7 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
                             <th>ID</th>
                             <th>Nome Completo</th>
                             <th>Curso / Turma</th>
+                            <th style="text-align: center;">Nível de Risco</th>
                             <th style="text-align: right;">Ações</th>
                         </tr>
                     </thead>
