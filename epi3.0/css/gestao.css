@@ -42,13 +42,16 @@
     width: 300px;
 }
 
-.search-wrapper i {
+.search-wrapper i,
+.search-wrapper svg {
     position: absolute;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
     width: 18px;
+    height: 18px;
+    pointer-events: none;
 }
 
 .search-input {

@@ -13,6 +13,15 @@ if (empty($usuario) || empty($senha)) {
     exit;
 }
 
+// Validação de Gmail ou CPF
+$isGmail = str_ends_with(strtolower($usuario), '@gmail.com');
+$isCPF = preg_match('/^\d{11}$/', preg_replace('/\D/', '', $usuario));
+
+if (!$isGmail && !$isCPF) {
+    header("Location: ../php/index.php?erro=formato");
+    exit;
+}
+
 // Busca o usuário no banco usando MySQLi
 $sql = "SELECT id, nome, usuario, senha, cargo 
         FROM usuarios 

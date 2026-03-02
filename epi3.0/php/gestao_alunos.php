@@ -88,8 +88,7 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
         <section class="gestao-container">
             <div class="gestao-header">
                 <div class="search-wrapper">
-                    <i data-lucide="search"></i>
-                    <input type="text" id="searchAluno" class="search-input" placeholder="Buscar aluno por nome...">
+                    <i data-lucide="search"></i><input type="text" id="searchAluno" class="search-input" placeholder="Buscar aluno por nome...">
                 </div>
                 <button class="btn-gestao btn-add" onclick="openModal('modalAluno')">
                     <i data-lucide="plus"></i> Novo Aluno

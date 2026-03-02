@@ -83,8 +83,7 @@ $cargoUsuario = ucfirst($userData['cargo'] ?? 'Visitante');
         <section class="gestao-container">
             <div class="gestao-header">
                 <div class="search-wrapper">
-                    <i data-lucide="search"></i>
-                    <input type="text" id="searchCurso" class="search-input" placeholder="Buscar curso por nome...">
+                    <i data-lucide="search"></i><input type="text" id="searchCurso" class="search-input" placeholder="Buscar curso por nome...">
                 </div>
                 <button class="btn-gestao btn-add" onclick="openModal('modalCurso')">
                     <i data-lucide="plus"></i> Novo Curso

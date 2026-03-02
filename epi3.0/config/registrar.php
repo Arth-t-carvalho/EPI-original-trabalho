@@ -12,6 +12,15 @@ if (empty($nome) || empty($usuario) || empty($senha)) {
     exit;
 }
 
+// Validação de Gmail ou CPF
+$isGmail = str_ends_with(strtolower($usuario), '@gmail.com');
+$isCPF = preg_match('/^\d{11}$/', preg_replace('/\D/', '', $usuario));
+
+if (!$isGmail && !$isCPF) {
+    header("Location: ../php/cadastro.php?erro=formato");
+    exit;
+}
+
 // Verifica se usuário já existe
 $checkSql = "SELECT id FROM usuarios WHERE usuario = ? LIMIT 1";
 $stmtCheck = mysqli_prepare($conn, $checkSql);

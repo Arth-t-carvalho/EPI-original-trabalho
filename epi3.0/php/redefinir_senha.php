@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EPI GUARD | Cadastro</title>
+    <title>EPI GUARD | Redefinir Senha</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Estilos -->
@@ -25,70 +25,60 @@
 
             <div class="hero-text">
                 <h1>SENAI</h1>
-                <p>Cadastro de Usuário</p>
+                <p>Recuperação de Acesso</p>
             </div>
 
             <div class="login-footer-left">
             </div>
         </div>
 
-        <!-- Lado Direito: Formulário de Cadastro -->
+        <!-- Lado Direito: Formulário de Redefinição -->
         <div class="login-right">
+            <div class="login-right-header" style="margin-bottom: 25px;">
+                <h2>Redefinir Senha</h2>
+                <p>Confirme seus dados para criar uma nova senha.</p>
+            </div>
 
             <?php if (isset($_GET['erro'])): ?>
                 <div class="error-message">
                     <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
                     <?php 
                         if($_GET['erro'] == 'formato') echo "Apenas Gmail ou CPF são permitidos.";
-                        else if($_GET['erro'] == 'existe') echo "Este e-mail/CPF já possui conta.";
-                        else echo "Erro ao cadastrar. Tente novamente.";
+                        else if($_GET['erro'] == 'nao_encontrado') echo "Usuário não encontrado em nossa base.";
+                        else echo "Erro ao redefinir. Tente novamente.";
                     ?>
                 </div>
             <?php endif; ?>
 
-            <?php if (isset($_GET['sucesso'])): ?>
-                <div class="success-message">
-                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
-                    Conta criada com sucesso!
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" action="../config/registrar.php">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label>NOME COMPLETO</label>
-                    <div class="input-wrapper">
-                        <input type="text" name="nome" placeholder="Ex: Arthur Silva" required>
-                    </div>
-                </div>
-
+            <form method="POST" action="../config/processar_redefinicao.php">
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>GMAIL OU CPF</label>
                     <div class="input-wrapper">
-                        <input type="text" name="usuario" id="registerUser" placeholder="exemplo@gmail.com ou CPF" required>
+                        <input type="text" name="usuario" id="resetUser" placeholder="exemplo@gmail.com ou CPF" required>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label>SENHA</label>
+                    <label>NOVA SENHA</label>
                     <div class="input-wrapper">
-                        <input type="password" name="senha" id="passwordInput" placeholder="••••••••" required>
+                        <input type="password" name="nova_senha" id="passwordInput" placeholder="••••••••" required>
                         <div class="eye-icon" id="togglePassword">
                             <i data-lucide="eye-off"></i>
                         </div>
                     </div>
                 </div>
-
                 <br>
                 <button type="submit" class="btn-login" style="margin-bottom: 15px;">
-                    CRIAR CONTA <i data-lucide="chevron-right"></i>
+                    REDEFINIR <i data-lucide="check"></i>
                 </button>
 
                 <div class="bottom-links" style="margin-top: 10px;">
-                    <a href="index.php">Já tem conta? Faça Login</a>
+                    <a href="index.php">Lembrou a senha? Faça Login</a>
                 </div>
             </form>
 
-          
+            <div class="login-footer-right" style="margin-top: 25px;">
+            </div>
         </div>
     </div>
 
@@ -98,19 +88,18 @@
 
             const form = document.querySelector('form');
             form.addEventListener('submit', function(e) {
-                const user = document.querySelector('#registerUser').value.trim();
-                
+                const user = document.querySelector('#resetUser').value.trim();
                 const isGmail = user.toLowerCase().endsWith('@gmail.com');
                 const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
 
                 if (!isGmail && !isCPF) {
                     e.preventDefault();
-                    alert("Por favor, insira um Gmail válido ou um CPF (apenas números).");
-                    return;
+                    alert("Por favor, insira um Gmail válido ou um CPF (11 dígitos).");
                 }
             });
 
             const togglePassword = document.querySelector('#togglePassword');
+            if (togglePassword) {
                 togglePassword.addEventListener('click', function() {
                     const passwordInput = document.querySelector('#passwordInput');
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
