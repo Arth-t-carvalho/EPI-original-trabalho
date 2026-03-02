@@ -37,7 +37,7 @@
             }
         });
     }
-
+    //teste
     //eu alterei essa função aqui - Pirra
     function performTransition(url) {
         const mainContent = document.querySelector('.main-content');
