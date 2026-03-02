@@ -52,6 +52,10 @@
                     Conta criada com sucesso!
                 </div>
             <?php endif; ?>
+            <div class="login-right-header">
+                <h2>Cadastrar</h2>
+                <p>Insira as suas credenciais administrativas.</p>
+            </div>
 
             <form method="POST" action="../config/registrar.php">
                 <div class="form-group" style="margin-bottom: 15px;">
