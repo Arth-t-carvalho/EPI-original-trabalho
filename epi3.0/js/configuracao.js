@@ -7,7 +7,7 @@ lucide.createIcons();
 function toggleLinkAbility(checkboxElement) {
     // Pegamos direto o status do botão que foi clicado
     const linksEnabled = checkboxElement.checked;
-    
+
     // Salva a preferência no navegador
     localStorage.setItem('linksEnabled', linksEnabled);
 
@@ -66,7 +66,7 @@ function changeChartType(type) {
     if (type === 'donut') document.getElementById('chart-donut').style.display = 'flex';
     if (type === 'bar') document.getElementById('chart-bar').style.display = 'flex';
     if (type === 'line') document.getElementById('chart-line').style.display = 'block';
-    
+
     // Opcional: Salvar o tipo de gráfico no LocalStorage também
     localStorage.setItem('chartType', type);
 }
@@ -74,12 +74,9 @@ function changeChartType(type) {
 function changeChartColor(color) {
     // Muda a cor na hora
     document.documentElement.style.setProperty('--chart-main-color', color);
-    
+
     // Salva a cor escolhida no navegador para não perder no F5
     localStorage.setItem('chartColor', color);
-<<<<<<< Updated upstream
-}
-=======
 }
 
 function toggleSound(checkbox) {
@@ -140,4 +137,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializa visibilidade globalmente ao carregar a página
     if (typeof applyPercentageVisibility === 'function') applyPercentageVisibility();
 });
->>>>>>> Stashed changes
