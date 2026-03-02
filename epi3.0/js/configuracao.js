@@ -83,9 +83,14 @@ function toggleSound(checkbox) {
     localStorage.setItem('soundEnabled', checkbox.checked);
 }
 
-//eu adicione isso aqui - Pirra
+// Salva se o som de transição de página deve tocar - Josue
 function toggleNavSound(checkbox) {
     localStorage.setItem('navSoundEnabled', checkbox.checked);
+}
+
+// Salva a preferência de receber alertas por e-mail no navegador - Josue
+function toggleEmailNotification(checkbox) {
+    localStorage.setItem('emailNotificationEnabled', checkbox.checked);
 }
 
 // Inicializa os checkboxes com os valores do localStorage
@@ -98,9 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const navSoundToggle = document.getElementById('toggle-nav-sound');
     if (navSoundToggle) {
-        // Inicializa o switch de som de transição - Pirra alterou aqui
+        // Recupera o estado do som de navegação salvo anteriormente - Josue
         const navSoundEnabled = localStorage.getItem('navSoundEnabled') !== 'false';
         navSoundToggle.checked = navSoundEnabled;
+    }
+
+    const emailToggle = document.getElementById('toggle-email-notification');
+    if (emailToggle) {
+        // Carrega se as notificações de e-mail estão ativas - Josue
+        emailToggle.checked = localStorage.getItem('emailNotificationEnabled') !== 'false';
     }
 
     const linksToggle = document.getElementById('toggle-link');

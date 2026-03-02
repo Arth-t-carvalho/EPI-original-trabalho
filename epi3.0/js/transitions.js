@@ -47,6 +47,7 @@
 
         if (mainContent) {
 
+            // Toca o áudio de troca de página apenas se o usuário permitiu nas configs - Josue
             if (navSoundEnabled) {
                 transitionSound.play().catch(e => console.warn("Erro ao tocar som de transição:", e));
             }

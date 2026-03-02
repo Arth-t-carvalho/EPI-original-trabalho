@@ -152,7 +152,20 @@
                             <small>Tocar bip ao detectar infração</small>
                         </div>
                         <label class="switch">
-                            <input type="checkbox">
+                            <!-- Switch para ativar/desativar o som de alerta de infração - Josue -->
+                            <input type="checkbox" id="toggle-sound" checked onchange="toggleSound(this)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Sons e Transições</span>
+                            <small>Sons e efeitos visuais ao mudar de página</small>
+                        </div>
+                        <label class="switch">
+                            <!-- Controla o áudio troca_pagina.mp3 durante a navegação - Josue -->
+                            <input type="checkbox" id="toggle-nav-sound" checked onchange="toggleNavSound(this)">
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -163,7 +176,8 @@
                             <small>Enviar e-mail se infração crítica</small>
                         </div>
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <!-- Salva preferência de e-mail no localStorage - Josue -->
+                            <input type="checkbox" id="toggle-email-notification" checked onchange="toggleEmailNotification(this)">
                             <span class="slider"></span>
                         </label>
                     </div>
