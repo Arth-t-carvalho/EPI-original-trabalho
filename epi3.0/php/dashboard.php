@@ -429,10 +429,7 @@ endif; ?>
                 <div class="input-wrapper"
                     style="display: flex; align-items: center; height: 38px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 0 8px;">
 
-                    <svg class="icon-left" style="width: 16px; height: 16px; fill: #9CA3AF; margin-right: 8px;">
-                        <path
-                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                    </svg>
+                    <i data-lucide="calendar-days" class="calendario" style="width: 18px; height: 18px; margin-right: 8px; color: #000; stroke: #000;"></i>
 
                     <input type="text" id="manualDateInput" placeholder="DD/MM/AAAA" maxlength="10"
                         style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; height: 100%; padding: 0;">

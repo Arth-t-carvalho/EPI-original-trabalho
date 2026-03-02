@@ -75,3 +75,44 @@ function applyPercentageVisibility() { applyGlobalSettings(); }
 
 // Inicializa no carregamento global
 document.addEventListener('DOMContentLoaded', applyGlobalSettings);
+
+// --- Modal de Confirmação Customizado ---
+let confirmationCallback = null;
+
+window.openConfirmModal = function (title, text, callback) {
+    const modal = document.getElementById('modalConfirm');
+    if (!modal) {
+        console.error("Erro: Elemento 'modalConfirm' não encontrado.");
+        return;
+    }
+
+    const titleEl = document.getElementById('confirmTitle');
+    const textEl = document.getElementById('confirmText');
+
+    if (titleEl) titleEl.innerText = title;
+    if (textEl) textEl.innerText = text;
+
+    confirmationCallback = callback;
+    modal.classList.add('active');
+    modal.style.display = 'flex'; // Forçar visibilidade
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+};
+
+window.closeConfirmModal = function () {
+    const modal = document.getElementById('modalConfirm');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+    confirmationCallback = null;
+};
+
+window.handleConfirmAction = function () {
+    if (confirmationCallback) {
+        confirmationCallback();
+    }
+    closeConfirmModal();
+};

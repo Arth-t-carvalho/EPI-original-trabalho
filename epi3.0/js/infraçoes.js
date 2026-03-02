@@ -53,17 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- Links de Navegação Sidebar ---
-    const links = document.querySelectorAll('a.nav-item');
-    links.forEach(link => {
-        link.addEventListener('click', (e) => {
-            const href = link.getAttribute('href');
-            if (!href || href === '#' || href.startsWith('javascript:')) return;
-            e.preventDefault();
-            document.body.classList.add('page-exit');
-            setTimeout(() => { window.location.href = href; }, 300);
-        });
-    });
 
     // --- Verificar parâmetros da URL para busca automática ---
     const urlParams = new URLSearchParams(window.location.search);

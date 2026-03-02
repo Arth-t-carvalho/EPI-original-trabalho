@@ -1966,3 +1966,12 @@ body {
         height: 18px;
     }
 }
+
+.calendario,
+.calendario svg {
+    color: #000000 !important;
+    stroke: #000000 !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: inline-block !important;
+}

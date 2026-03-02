@@ -260,6 +260,11 @@ function toggleCalendar() {
         currCalMonth = selectedDate.getMonth();
         renderCalendarGrid();
         modal.classList.add('active');
+
+        // Garante que os ícones (como o do input manual) sejam renderizados
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     } else {
         modal.classList.remove('active');
     }

@@ -14,7 +14,7 @@ if (empty($usuario) || empty($senha)) {
 }
 
 // Busca o usuário no banco usando MySQLi
-$sql = "SELECT id, nome, usuario, senha, cargo, id_curso 
+$sql = "SELECT id, nome, usuario, senha, cargo 
         FROM usuarios 
         WHERE usuario = ? 
         LIMIT 1";
@@ -37,7 +37,6 @@ if ($user && $senha == $user['senha']) {
     $_SESSION['usuario_id'] = $user['id'];
     $_SESSION['nome'] = $user['nome'];
     $_SESSION['cargo'] = $user['cargo'];
-    $_SESSION['usuario_id_curso'] = $user['id_curso'];
 
     header("Location: ../php/dashboard.php");
     exit;

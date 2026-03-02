@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/../config/auth.php';
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -17,6 +20,7 @@
 <body>
 
    <?php include __DIR__ . '/../components/sidebar.php'; ?>
+   
     <main class="main-content">
         <div id="view-config" class="view-section active">
             <header>

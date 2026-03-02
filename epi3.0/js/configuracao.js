@@ -81,23 +81,12 @@ function toggleSound(checkbox) {
     localStorage.setItem('soundEnabled', checkbox.checked);
 }
 
-function toggleNavSound(checkbox) {
-    localStorage.setItem('navSoundEnabled', checkbox.checked);
-}
-
-
 // Inicializa os checkboxes com os valores do localStorage
 document.addEventListener('DOMContentLoaded', () => {
     const soundToggle = document.getElementById('toggle-sound');
     if (soundToggle) {
         const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
         soundToggle.checked = soundEnabled;
-    }
-
-    const navSoundToggle = document.getElementById('toggle-nav-sound');
-    if (navSoundToggle) {
-        const navSoundEnabled = localStorage.getItem('navSoundEnabled') !== 'false';
-        navSoundToggle.checked = navSoundEnabled;
     }
 
     const linksToggle = document.getElementById('toggle-link');

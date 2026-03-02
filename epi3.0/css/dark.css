@@ -239,6 +239,82 @@
     color: #f8f8f8;
 }
 
-[data-theme="dark"] .violation-tag {
-    color: #f50808;
+[data-theme="dark"] .calendar-wrapper {
+    color: #f8f8f8;
+    background: #1f2937;
+}
+
+
+/* --- Dark Mode Overrides --- */
+body.dark-mode .card-gestao {
+    background: #1f2937;
+}
+
+body.dark-mode .table-controls {
+    background: #111827;
+}
+
+body.dark-mode .gestao-table {
+    background: #111827;
+}
+
+body.dark-mode .gestao-table th {
+    background: #1f2937;
+}
+
+body.dark-mode .modal-content-gestao {
+    background: #1f2937;
+}
+
+body.dark-mode .status-badge.status-baixo {
+    color: #166534;
+
+}
+
+body.dark-mode .form-input,
+body.dark-mode .form-select {
+    background: #1f2937;
+    color: white;
+    border-color: #1f2937;
+}
+
+body.dark-mode .modal-container {
+    background: #1f2937;
+
+}
+
+body.dark-mode .custom-table {
+    background: #1f2937;
+    color: #E5E7EB;
+
+}
+
+body.dark-mode .status-pendente {
+    color: #E5E7EB;
+    background-color: #c0000d;
+}
+
+body.dark-mode #modalTableBody td {
+    color: #E5E7EB;
+}
+
+body.dark-mode .custom-table tr:hover {
+    background-color: #111827;
+}
+
+body.dark-mode .btn-modal-action {
+    background-color: #E5E7EB;
+    color: #111827;
+}
+
+body.dark-mode .calendar-body li {
+    color: #E5E7EB;
+}
+
+body.dark-mode .calendar-body li:hover {
+    color: #374151;
+}
+
+body.dark-mode .calendar-body li.inactive {
+    color: #a4a7ac;
 }
