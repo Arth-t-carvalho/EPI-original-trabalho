@@ -5,20 +5,21 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/auth.php';
 
-// CONFIGURAÇÃO DO PROFESSOR
-$cursoId = 1;
+// CONFIGURAÇÃO DO PROFESSOR (Filtrado pelo curso do usuário logado)
+$cursoId = (isset($_SESSION['usuario_id_curso']) && (int)$_SESSION['usuario_id_curso'] > 0) ? (int)$_SESSION['usuario_id_curso'] : 1;
+
 
 // DADOS DO USUÁRIO
-$sqlUser = "SELECT nome, cargo FROM usuarios WHERE usuario = ? LIMIT 1";
+$sqlUser = "SELECT nome, cargo FROM usuarios WHERE id = ? LIMIT 1";
 $stmtUser = mysqli_prepare($conn, $sqlUser);
-$userRef = $_SESSION['usuario_nome'] ?? 'admin';
-mysqli_stmt_bind_param($stmtUser, "s", $userRef);
+$userRef = $_SESSION['usuario_id'];
+mysqli_stmt_bind_param($stmtUser, "i", $userRef);
 mysqli_stmt_execute($stmtUser);
 $resUser = mysqli_stmt_get_result($stmtUser);
 $userData = mysqli_fetch_assoc($resUser);
 
-$nomeUsuario = $userData['nome'] ?? 'Usuário';
-$cargoUsuario = ucfirst($userData['cargo'] ?? 'Visitante');
+$nomeUsuario = $userData['nome'] ?? ($_SESSION['nome'] ?? 'Usuário');
+$cargoUsuario = ucfirst($userData['cargo'] ?? ($_SESSION['cargo'] ?? 'Visitante'));
 
 // KPIs
 // Infrações do Dia
@@ -51,13 +52,25 @@ $stmtAlunosTotal = mysqli_prepare($conn, $sqlTotalAlunos);
 mysqli_stmt_bind_param($stmtAlunosTotal, "i", $cursoId);
 mysqli_stmt_execute($stmtAlunosTotal);
 $resTotalAlunos = mysqli_stmt_get_result($stmtAlunosTotal);
-$totalAlunos = (int) (mysqli_fetch_assoc($resTotalAlunos)['total'] ?? 0);
+$totalAlunos = (int)(mysqli_fetch_assoc($resTotalAlunos)['total'] ?? 0);
+
+// MÉDIA TURMA (Conformidade baseada em alunos ÚNICOS sem infração hoje - FILTRADO POR CURSO)
+$sqlAlunosHoje = "SELECT COUNT(DISTINCT o.aluno_id) as total 
+                  FROM ocorrencias o 
+                  JOIN alunos a ON a.id = o.aluno_id 
+                  WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
+$stmtAlunosHoje = mysqli_prepare($conn, $sqlAlunosHoje);
+mysqli_stmt_bind_param($stmtAlunosHoje, "i", $cursoId);
+mysqli_stmt_execute($stmtAlunosHoje);
+$resAlunosHoje = mysqli_stmt_get_result($stmtAlunosHoje);
+$alunosComInfracaoHoje = (int)(mysqli_fetch_assoc($resAlunosHoje)['total'] ?? 0);
 
 if ($totalAlunos === 0) {
     $mediaTurma = 100;
-} else {
-    $mediaTurma = 100 - (($infraMes / $totalAlunos) * 100);
-    $mediaTurma = max(0, min(100, round($mediaTurma)));
+}
+else {
+    $mediaTurma = round((($totalAlunos - $alunosComInfracaoHoje) / $totalAlunos) * 100);
+    $mediaTurma = max(0, min(100, $mediaTurma));
 }
 
 // ALUNOS CRÍTICOS
@@ -74,7 +87,7 @@ $sqlOntem = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.i
 $stmtOntem = mysqli_prepare($conn, $sqlOntem);
 mysqli_stmt_bind_param($stmtOntem, "i", $cursoId);
 mysqli_stmt_execute($stmtOntem);
-$infraOntem = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtOntem))['total'] ?? 0);
+$infraOntem = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtOntem))['total'] ?? 0);
 $percDia = ($infraOntem > 0) ? round((($infraDia - $infraOntem) / $infraOntem) * 100, 1) : ($infraDia * 100);
 
 // Semana Anterior
@@ -82,7 +95,7 @@ $sqlSemAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.
 $stmtSemAnt = mysqli_prepare($conn, $sqlSemAnt);
 mysqli_stmt_bind_param($stmtSemAnt, "i", $cursoId);
 mysqli_stmt_execute($stmtSemAnt);
-$infraSemanaAnterior = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemAnt))['total'] ?? 0);
+$infraSemanaAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemAnt))['total'] ?? 0);
 $percSemana = ($infraSemanaAnterior > 0) ? round((($infraSemana - $infraSemanaAnterior) / $infraSemanaAnterior) * 100, 1) : ($infraSemana * 100);
 
 // Mês Anterior
@@ -90,7 +103,7 @@ $sqlMesAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.
 $stmtMesAnt = mysqli_prepare($conn, $sqlMesAnt);
 mysqli_stmt_bind_param($stmtMesAnt, "i", $cursoId);
 mysqli_stmt_execute($stmtMesAnt);
-$infraMesAnterior = (int) (mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMesAnt))['total'] ?? 0);
+$infraMesAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMesAnt))['total'] ?? 0);
 $percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $infraMesAnterior) * 100, 1) : ($infraMes * 100);
 
 // Ranking Modal
@@ -113,7 +126,15 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
     <link rel="stylesheet" href="../css/dashboard.css">
         <link rel="stylesheet" href="../css/nav.css">
         <link rel="stylesheet" href="../css/dark.css">
+        <link rel="stylesheet" href="../css/transitions.css">
         <script src="../js/Dark.js"></script>
+        <script src="../js/transitions.js"></script>
+        <script>
+            window.totalStudents = <?php echo $totalAlunos; ?>;
+        </script>
+        <!-- Bibliotecas para PDF -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -130,7 +151,20 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
             </div>
 
             <div class="header-actions">
-                <button class="btn-export" onclick="exportData()">
+                <a href="configuracoes.php" class="btn-header-action" title="Configurações">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </a>
+
+                <a href="infracoes.php" class="btn-header-action" title="Notificações">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="notif-badge" id="notifBadge">0</span>
+                </a>
+
+                <button class="btn-export" onclick="exportData()" style="margin-left: 10px;">
                     <svg viewBox="0 0 24 24">
                         <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" />
                     </svg>
@@ -158,7 +192,10 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                     <span class="detail-label">Status</span>
                     <span class="detail-value" style="color:var(--success)">Online</span>
                 </div>
-                <button class="btn-close-card" onclick="toggleInstructorCard()">Sair</button>
+                <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; display: flex; gap: 10px;">
+                    <button class="btn-close-card" onclick="toggleInstructorCard()" style="flex:1; background: #f3f4f6; color: #374151;">Fechar</button>
+                    <a href="../config/logout.php" class="btn-close-card" style="flex:1; background: #fee2e2; color: #dc2626; text-decoration: none; text-align: center; line-height: 1.5;">Sair</a>
+                </div>
             </div>
         </header>
 
@@ -168,7 +205,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiDia"><?php echo $infraDia; ?></span>
                     <span id="badgeDia" class="badge <?php echo $percDia >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo ($percDia >= 0 ? '↗ ' : '↘ ') . abs($percDia); ?>%
+                        <?php echo($percDia >= 0 ? '↗ ' : '↘ ') . abs($percDia); ?>%
                     </span>
                 </div>
             </div>
@@ -177,7 +214,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiSemana"><?php echo $infraSemana; ?></span>
                     <span id="badgeSemana" class="badge <?php echo $percSemana >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo ($percSemana >= 0 ? '↗ ' : '↘ ') . abs($percSemana); ?>%
+                        <?php echo($percSemana >= 0 ? '↗ ' : '↘ ') . abs($percSemana); ?>%
                     </span>
                 </div>
             </div>
@@ -186,7 +223,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiMes"><?php echo $infraMes; ?></span>
                     <span id="badgeMes" class="badge <?php echo $percMes >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo ($percMes >= 0 ? '↗ ' : '↘ ') . abs($percMes); ?>%
+                        <?php echo($percMes >= 0 ? '↗ ' : '↘ ') . abs($percMes); ?>%
                     </span>
                 </div>
             </div>
@@ -196,17 +233,20 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                     <span id="kpiMedia"><?php echo $mediaTurma; ?>%</span>
 
                     <?php
-                    // Lógica de Status de Conformidade
-                    if ($mediaTurma < 70) {
-                        echo '<span class="status-badge status-critico" title="Risco alto! Bloqueio ou intervenção imediata">🚨 CRÍTICO</span>';
-                    } elseif ($mediaTurma < 85) {
-                        echo '<span class="status-badge status-alto" title="Abaixo do aceitável! Requer plano de ação">🟠 ALTO RISCO</span>';
-                    } elseif ($mediaTurma < 95) {
-                        echo '<span class="status-badge status-moderado" title="Nível aceitável, mas requer monitoramento">🟡 MODERADO</span>';
-                    } else {
-                        echo '<span class="status-badge status-baixo" title="Operação segura e padrão ideal">🟢 CONTROLADO</span>';
-                    }
-                    ?>
+// Lógica de Status de Conformidade
+if ($mediaTurma < 70) {
+    echo '<span class="status-badge status-critico" title="Risco alto! Bloqueio ou intervenção imediata">🚨 CRÍTICO</span>';
+}
+elseif ($mediaTurma < 85) {
+    echo '<span class="status-badge status-alto" title="Abaixo do aceitável! Requer plano de ação">🟠 ALTO RISCO</span>';
+}
+elseif ($mediaTurma < 95) {
+    echo '<span class="status-badge status-moderado" title="Nível aceitável, mas requer monitoramento">🟡 MODERADO</span>';
+}
+else {
+    echo '<span class="status-badge status-baixo" title="Operação segura e padrão ideal">🟢 CONTROLADO</span>';
+}
+?>
                 </div>
             </div>
         </div>
@@ -270,12 +310,12 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div style="display: flex; flex-direction: column; gap: 4px;">
 
                     <?php
-                    if (count($alunosCriticos) > 0):
-                        foreach ($alunosCriticos as $aluno):
-                            $width = ($aluno['total'] > 20) ? 100 : ($aluno['total'] * 5);
-                            $color = ($aluno['total'] > 10) ? '#E30613' : '#1F2937';
-                            ?>
-                            <div class="list-item">
+if (count($alunosCriticos) > 0):
+    foreach ($alunosCriticos as $aluno):
+        $width = ($aluno['total'] > 20) ? 100 : ($aluno['total'] * 5);
+        $color = ($aluno['total'] > 10) ? '#E30613' : '#1F2937';
+?>
+                            <div class="list-item" onclick="irParaInfracoes('<?php echo addslashes($aluno['nome']); ?>')" style="cursor: pointer;" title="Ver todas as infrações de <?php echo htmlspecialchars($aluno['nome']); ?>">
                                 <span
                                     style="font-size: 13px; font-weight: 600;"><?php echo htmlspecialchars($aluno['nome']); ?></span>
                                 <div class="progress-bar">
@@ -285,9 +325,12 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                                 </div>
                                 <span style="font-size: 12px; font-weight: bold;"><?php echo $aluno['total']; ?></span>
                             </div>
-                        <?php endforeach; else: ?>
+                        <?php
+    endforeach;
+else: ?>
                         <div class="list-item"><span style="font-size:13px;">Sem dados ainda.</span></div>
-                    <?php endif; ?>
+                    <?php
+endif; ?>
 
                     <div style="text-align:center; margin-top:10px;">
                         <a href="javascript:void(0)" onclick="openAlunosModal()"
@@ -386,10 +429,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="input-wrapper"
                     style="display: flex; align-items: center; height: 38px; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 0 8px;">
 
-                    <svg class="icon-left" style="width: 16px; height: 16px; fill: #9CA3AF; margin-right: 8px;">
-                        <path
-                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                    </svg>
+                    <i data-lucide="calendar-days" class="calendario" style="width: 18px; height: 18px; margin-right: 8px; color: #000; stroke: #000;"></i>
 
                     <input type="text" id="manualDateInput" placeholder="DD/MM/AAAA" maxlength="10"
                         style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; height: 100%; padding: 0;">
@@ -438,12 +478,15 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                                         <span class="badge-count"><?php echo $aluno['total']; ?></span>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                            <?php
+    endforeach; ?>
+                        <?php
+else: ?>
                             <tr>
                                 <td colspan="3" style="text-align:center;">Nenhum dado encontrado.</td>
                             </tr>
-                        <?php endif; ?>
+                        <?php
+endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -460,7 +503,8 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
     <script>
         lucide.createIcons();
     </script>
-    <script src="../js/dashboard.js"></script>
+    <script src="../js/dashboard.js" defer></script>
+    <script src="../js/notifications.js" defer></script>
    <script src="../js/global.js"></script>
     <script src="../js/Dark.js"></script>
     <script src="../js/configuracao.js"></script>

@@ -44,26 +44,13 @@
             transition: all 0.3s ease;
         }
 
-        /* --- Sidebar --- */
-        aside {
-            width: 250px;
-            background: var(--bg-sidebar);
-            height: 100vh;
-            position: fixed;
-            border-right: 1px solid var(--border-color);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
-            transition: all 0.3s ease;
-        }
+        /* Sidebar removido para usar o global nav.css */
 
 
-      
+
 
         /* --- Main Content --- */
-        main {
-            margin-left: 250px;
+        main.main-content {
             flex: 1;
             padding: 2rem;
             overflow-y: auto;
@@ -467,12 +454,20 @@
         .config-card {
             background: var(--bg-card);
             border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1), 0 8px 15px -6px rgba(0, 0, 0, 0.1);
-
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             margin: 5px;
+            position: relative;
         }
+
+        .config-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--senai-red);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
 
         .config-header {
             font-weight: 700;
@@ -565,17 +560,116 @@
             width: 120px;
         }
 
-        input[type="color"] {
-            border: none;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            background: none;
+        /* --- Color Picker Professional UI --- */
+        .color-setting-group {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
         }
 
+        .group-label {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-body);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .color-row:hover {
+            border-color: var(--senai-red);
+            transform: translateX(4px);
+        }
+
+        .color-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .color-info span {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .color-info small {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .color-row input[type="color"] {
+            -webkit-appearance: none;
+            appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--border-color);
+            transition: transform 0.2s ease;
+        }
+
+        .color-row input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-row input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+
+        .color-row input[type="color"]:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-reset-colors {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            background: transparent;
+            border: 1px dashed var(--senai-red);
+            color: var(--senai-red);
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset-colors:hover {
+            background: rgba(227, 6, 19, 0.05);
+            border-style: solid;
+        }
+
+        .btn-reset-colors i,
+        .btn-reset-colors svg {
+            width: 16px;
+            height: 16px;
+        }
+
+
         /* --- Views (Dashboard vs Settings) - Efeito Slide PPT --- */
-        main {
-            margin-left: 250px;
+        main.main-content {
             flex: 1;
             padding: 2rem;
             overflow-y: auto;

@@ -7,6 +7,8 @@ let selectedDate = new Date(); // Data usada no Dashboard
 let currCalYear = new Date().getFullYear(); // Ano visualizado no Modal de Escolha de Data
 let currCalMonth = new Date().getMonth();   // Mês visualizado no Modal de Escolha de Data
 let allOccurrences = []; // Dados do BD
+let mainChartInstance = null;
+let doughnutChartInstance = null;
 
 // Arrays auxiliares
 const monthsFull = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -105,8 +107,9 @@ function renderInterface() {
         if (dailyData.length > 0) {
             dailyData.forEach(item => {
                 const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
+                const safeName = (item.name || '').replace(/'/g, "\\'");
                 list.innerHTML += `
-                    <div class="occurrence-item">
+                    <div class="occurrence-item" onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}">
                         <div class="occ-avatar">${initials}</div>
                         <div class="occ-info">
                             <span class="occ-name">${item.name}</span>
@@ -123,6 +126,18 @@ function renderInterface() {
     // 3. Atualiza os KPIs
     updateKPICards();
     updatePercentagesDinamicamente();
+
+    // 4. Aplica visibilidade de porcentagem e status (definida em global.js)
+    if (typeof applyGlobalSettings === 'function') {
+        applyGlobalSettings();
+    }
+}
+
+// Navegação para infrações filtrada por nome
+function irParaInfracoes(nome) {
+    if (!nome) return;
+    const url = `infracoes.php?periodo=todos&busca=${encodeURIComponent(nome)}`;
+    window.location.href = url;
 }
 
 // Botões Setas do Dashboard (❮ ❯)
@@ -149,14 +164,17 @@ function isSameDay(d1, d2) {
 }
 
 function isSameWeek(d1, d2) {
-    const onejan = new Date(d1.getFullYear(), 0, 1);
-    const today = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
-    const dayOfYear = ((today - onejan + 86400000) / 86400000);
-    const week1 = Math.ceil(dayOfYear / 7);
-    const target = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
-    const dayOfYearTarget = ((target - onejan + 86400000) / 86400000);
-    const week2 = Math.ceil(dayOfYearTarget / 7);
-    return d1.getFullYear() === d2.getFullYear() && week1 === week2;
+    const date1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    const date2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+
+    // Ajusta para o início da semana (domingo)
+    const start1 = new Date(date1);
+    start1.setDate(date1.getDate() - date1.getDay());
+
+    const start2 = new Date(date2);
+    start2.setDate(date2.getDate() - date2.getDay());
+
+    return start1.getTime() === start2.getTime();
 }
 
 function updateKPICards() {
@@ -164,11 +182,19 @@ function updateKPICards() {
     const selMonth = selectedDate.getMonth();
     const selYear = selectedDate.getFullYear();
 
+    // Conjunto para rastrear alunos ÚNICOS com infração no dia selecionado
+    const uniqueStudentsToday = new Set();
+
     allOccurrences.forEach(item => {
         const dbDateString = item.full_date || item.data_hora || item.date;
         const itemDate = new Date(dbDateString.replace(/-/g, '/'));
 
-        if (isSameDay(selectedDate, itemDate)) countDay++;
+        if (isSameDay(selectedDate, itemDate)) {
+            countDay++;
+            if (item.aluno_id || item.student_id) {
+                uniqueStudentsToday.add(item.aluno_id || item.student_id);
+            }
+        }
         if (isSameWeek(selectedDate, itemDate)) countWeek++;
         if (itemDate.getMonth() === selMonth && itemDate.getFullYear() === selYear) countMonth++;
     });
@@ -176,11 +202,48 @@ function updateKPICards() {
     const elDia = document.getElementById('kpiDia');
     const elSemana = document.getElementById('kpiSemana');
     const elMes = document.getElementById('kpiMes');
+    const elMedia = document.getElementById('kpiMedia');
 
     if (elDia) elDia.innerText = countDay;
     if (elSemana) elSemana.innerText = countWeek;
     if (elMes) elMes.innerText = countMonth;
 
+    // Cálculo da Conformidade: (Total - Alunos com Infração) / Total
+    if (elMedia) {
+        const total = window.totalStudents || 20; // fallback para 20 se não definido
+        const infra = uniqueStudentsToday.size;
+        const conformidade = Math.round(((total - infra) / total) * 100);
+        elMedia.innerText = `${Math.max(0, conformidade)}%`;
+
+        // Opcional: Atualizar o badge de status (🚨 CRÍTICO, etc) se necessário
+        updateConformityStatus(conformidade);
+    }
+}
+
+function updateConformityStatus(valor) {
+    const card = document.getElementById('kpiMedia')?.parentElement;
+    if (!card) return;
+
+    let badge = card.querySelector('.status-badge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'status-badge';
+        card.appendChild(badge);
+    }
+
+    if (valor < 70) {
+        badge.className = 'status-badge status-critico';
+        badge.innerText = '🚨 CRÍTICO';
+    } else if (valor < 85) {
+        badge.className = 'status-badge status-alto';
+        badge.innerText = '🟠 ALTO RISCO';
+    } else if (valor < 95) {
+        badge.className = 'status-badge status-moderado';
+        badge.innerText = '🟡 MODERADO';
+    } else {
+        badge.className = 'status-badge status-baixo';
+        badge.innerText = '🟢 CONTROLADO';
+    }
 }
 
 // ===============================
@@ -197,6 +260,11 @@ function toggleCalendar() {
         currCalMonth = selectedDate.getMonth();
         renderCalendarGrid();
         modal.classList.add('active');
+
+        // Garante que os ícones (como o do input manual) sejam renderizados
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     } else {
         modal.classList.remove('active');
     }
@@ -326,20 +394,68 @@ function toggleInstructorCard() {
 }
 
 function exportData() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
     const btn = document.querySelector('.btn-export');
     if (!btn) return;
     const originalHTML = btn.innerHTML;
-    btn.innerHTML = 'Exportando...';
+    btn.innerHTML = 'Gerando PDF...';
     btn.style.color = '#E30613';
-    setTimeout(() => {
-        alert("Dados exportados (CSV) com sucesso!");
-        btn.innerHTML = originalHTML;
-        btn.style.color = '';
-    }, 1000);
+
+    // Configurações do PDF
+    doc.setFontSize(18);
+    doc.text("Relatório de Ocorrências - EPI Guard", 14, 20);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Data de Geração: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    // Pega as ocorrências atuais do mês selecionado
+    const currentMonth = selectedDate.getMonth() + 1;
+    const currentYear = selectedDate.getFullYear();
+
+    fetch(`../apis/api.php?action=modal_details&month=${currentMonth}&year=${currentYear}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                alert("Nenhuma ocorrência encontrada para exportar neste mês.");
+                btn.innerHTML = originalHTML;
+                btn.style.color = '';
+                return;
+            }
+
+            const head = [['Data', 'Aluno', 'EPI', 'Hora', 'Status']];
+            const body = data.map(row => [
+                row.data,
+                row.aluno,
+                row.epis,
+                row.hora,
+                row.status_formatado
+            ]);
+
+            doc.autoTable({
+                startY: 35,
+                head: head,
+                body: body,
+                theme: 'striped',
+                headStyles: { fillColor: [227, 6, 19] } // Vermelho SENAI
+            });
+
+            doc.save(`relatorio_epi_${currentMonth}_${currentYear}.pdf`);
+
+            btn.innerHTML = originalHTML;
+            btn.style.color = '';
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Erro ao gerar PDF.");
+            btn.innerHTML = originalHTML;
+            btn.style.color = '';
+        });
 }
 
 // Modal de Detalhes (Vem do clique no gráfico)
-function openDetailModal(monthIndex, monthName) {
+function openDetailModal(monthIndex, monthName, epiName = '') {
     const modal = document.getElementById('detailModal');
     const title = document.getElementById('modalMonthTitle');
     const tbody = document.getElementById('modalTableBody');
@@ -349,10 +465,21 @@ function openDetailModal(monthIndex, monthName) {
     const realMonth = monthIndex + 1;
     const currentYear = new Date().getFullYear();
 
-    title.innerText = `${monthName} de ${currentYear}`;
+    let displayTitle = `${monthName} de ${currentYear}`;
+    if (epiName) {
+        displayTitle += ` - Filtro: ${epiName}`;
+    }
+
+    title.innerText = displayTitle;
+    modal.style.display = ''; // Limpa qualquer display: none residual
     modal.classList.add('open');
 
-    fetch(`../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}`)
+    let url = `../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}`;
+    if (epiName) {
+        url += `&epi=${encodeURIComponent(epiName)}`;
+    }
+
+    fetch(url)
         .then(res => res.json())
         .then(data => {
             tbody.innerHTML = '';
@@ -363,13 +490,27 @@ function openDetailModal(monthIndex, monthName) {
             data.forEach(row => {
                 const statusTexto = row.status_formatado || row.status;
                 let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
+
+                // Atributos extras se for Pendente: cursor pointer e redirecionamento para ocorrencias.php
+                let extraAttrs = '';
+                if (statusTexto === 'Pendente') {
+                    const params = new URLSearchParams({
+                        ocorrencia_id: row.ocorrencia_id,
+                        aluno_id: row.aluno_id,
+                        epi: row.epis,
+                        data: row.data,
+                        hora: row.hora
+                    });
+                    extraAttrs = `style="cursor: pointer;" onclick="window.location.href='ocorrencias.php?${params.toString()}'" title="Clique para resolver ocorrência"`;
+                }
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${row.data}</td>
                         <td style="font-weight:500;">${row.aluno}</td>
                         <td>${row.epis}</td>
                         <td>${row.hora}</td>
-                        <td><span class="status-badge ${classeStatus}">${statusTexto}</span></td>
+                        <td><span class="status-badge ${classeStatus}" ${extraAttrs}>${statusTexto}</span></td>
                     </tr>`;
             });
         })
@@ -382,24 +523,109 @@ function loadCharts() {
     fetch('../apis/api.php?action=charts')
         .then(res => res.json())
         .then(response => {
-            // BAR CHART
+            if (response.status === 'session_expired' || response.status === 'not_logged') {
+                window.location.href = 'index.php';
+                return;
+            }
+
+            if (mainChartInstance) mainChartInstance.destroy();
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+            // Pega as cores personalizadas
+            const colorAll = localStorage.getItem('chartColor_all') || '#E30613';
+            const colorHelmet = localStorage.getItem('chartColor_helmet') || '#1F2937';
+            const colorGlasses = localStorage.getItem('chartColor_glasses') || '#9CA3AF';
+
+            // Pega o tipo de gráfico (bar ou line)
+            const chartType = localStorage.getItem('chartType') || 'bar';
+
+            // BAR / LINE CHART
             const ctxMain = document.getElementById('mainChart').getContext('2d');
-            new Chart(ctxMain, {
-                type: 'bar',
+            mainChartInstance = new Chart(ctxMain, {
+                type: chartType,
                 data: {
                     labels: monthsFull,
                     datasets: [
-                        { label: 'Capacete', data: response.bar.capacete, backgroundColor: '#E30613', borderRadius: 4 },
-                        { label: 'Óculos', data: response.bar.oculos, backgroundColor: '#1F2937', borderRadius: 4 },
-                        { label: 'Total', data: response.bar.total, backgroundColor: '#9CA3AF', borderRadius: 4 }
+                        {
+                            label: 'Capacete',
+                            data: response.bar.capacete,
+                            backgroundColor: colorHelmet,
+                            borderColor: colorHelmet,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        },
+                        {
+                            label: 'Óculos',
+                            data: response.bar.oculos,
+                            backgroundColor: colorGlasses,
+                            borderColor: colorGlasses,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        },
+                        {
+                            label: 'Total',
+                            data: response.bar.total,
+                            backgroundColor: colorAll,
+                            borderColor: colorAll,
+                            borderRadius: (chartType === 'bar' ? 4 : 0),
+                            tension: (chartType === 'line' ? 0.4 : 0),
+                            fill: (chartType === 'line' ? false : true),
+                            pointRadius: (chartType === 'line' ? 4 : 0),
+                            pointHoverRadius: (chartType === 'line' ? 6 : 0)
+                        }
                     ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     onClick: (evt, active, chart) => {
-                        if (active.length > 0) {
-                            // CHAMA A FUNÇÃO openDetailModal (Lógica sua)
-                            openDetailModal(active[0].index, chart.data.labels[active[0].index]);
+                        // No gráfico de linha ou barra, pegamos o index do ponto clicado (ou barra)
+                        const points = chart.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+                        if (points.length > 0) {
+                            const monthIndex = points[0].index;
+
+                            // Tenta identificar se o usuário clicou em um dataset específico
+                            // senão, assume que quer ver o total do mês
+                            const exactPoints = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                            let filterEPI = '';
+                            if (exactPoints.length > 0) {
+                                const datasetIndex = exactPoints[0].datasetIndex;
+                                const label = chart.data.datasets[datasetIndex].label;
+                                filterEPI = label === 'Total' ? '' : label;
+                            }
+
+                            openDetailModal(monthIndex, monthsFull[monthIndex], filterEPI);
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
@@ -407,20 +633,32 @@ function loadCharts() {
 
             // DOUGHNUT CHART
             const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
-            new Chart(ctxDoughnut, {
+            doughnutChartInstance = new Chart(ctxDoughnut, {
                 type: 'doughnut',
                 data: {
                     labels: response.doughnut.labels,
                     datasets: [{
                         data: response.doughnut.data,
-                        backgroundColor: ['#E30613', '#1F2937', '#9CA3AF'],
+                        backgroundColor: [colorHelmet, colorGlasses, colorAll],
                         borderWidth: 2
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
+                    onClick: (evt, active, chart) => {
+                        if (active.length > 0) {
+                            const index = active[0].index;
+                            const label = chart.data.labels[index];
+                            openDetailModal(selectedDate.getMonth(), monthsFull[selectedDate.getMonth()], label);
+                        }
+                    }
+                }
             });
         })
-        .catch(err => console.error('Erro gráficos:', err));
+        .catch(err => {
+            console.error('Erro gráficos:', err);
+            setTimeout(() => { if (!mainChartInstance) loadCharts(); }, 3000);
+        });
 }
 
 
@@ -594,25 +832,23 @@ function updatePercentagesDinamicamente() {
 function closeModal() {
     const modal = document.getElementById('detailModal');
     if (modal) {
-        modal.classList.remove('active'); // Remove a classe que mostra o modal
-        // Caso o seu CSS use display: block/none em vez de classes:
-        modal.style.display = 'none';
+        modal.classList.remove('open');
+        modal.style.display = '';
     }
 }
 
 function openAlunosModal() {
     const modal = document.getElementById('alunosRankingModal');
     if (modal) {
-        modal.style.display = 'flex'; // Força a exibição
-        modal.style.opacity = '1';    // Garante visibilidade
-        modal.style.visibility = 'visible';
+        modal.style.display = ''; // Limpa display: none
+        modal.classList.add('open');
     }
 }
 
 function closeAlunosModal() {
     const modal = document.getElementById('alunosRankingModal');
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('open');
     }
 }
 
@@ -716,41 +952,29 @@ function verificarNovasOcorrencias() {
     fetch(`../php/check_notificacoes.php?last_id=${ultimoIdNotificacao}`, {
         headers: { "X-Requested-With": "XMLHttpRequest" }
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'init') {
-            ultimoIdNotificacao = data.last_id;
-            return;
-        }
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'init') {
+                ultimoIdNotificacao = data.last_id;
+                return;
+            }
 
-        if (data.status === 'success' && data.dados.length > 0) {
-            data.dados.forEach(ocorrencia => {
-                if (ocorrencia.id > ultimoIdNotificacao) {
-                    
-                    // --- CORREÇÃO DO SOM AQUI ---
-                    const som = new Audio('../som/notificacao.mp3');
-                    som.preload = 'auto'; // Força o carregamento prévio
-                    
-                    // Tentativa de tocar
-                    const playPromise = som.play();
+            if (data.status === 'success' && data.dados.length > 0) {
+                data.dados.forEach(ocorrencia => {
+                    if (ocorrencia.id > ultimoIdNotificacao) {
 
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.warn("O som foi bloqueado. Clique em qualquer lugar na página para habilitar o áudio.");
-                        });
+                        // Nota: O som de notificação agora é gerenciado globalmente pelo notifications.js
+
+                        mostrarNotificacao(ocorrencia.aluno, ocorrencia.epi_nome);
+                        ultimoIdNotificacao = ocorrencia.id;
                     }
-                    // ----------------------------
+                });
 
-                    mostrarNotificacao(ocorrencia.aluno, ocorrencia.epi_nome);
-                    ultimoIdNotificacao = ocorrencia.id;
-                }
-            });
-
-            if (typeof loadCalendarData === 'function') loadCalendarData();
-            if (typeof updateKPICards === 'function') updateKPICards();
-        }
-    })
-    .catch(err => console.error("Erro:", err));
+                if (typeof loadCalendarData === 'function') loadCalendarData();
+                if (typeof updateKPICards === 'function') updateKPICards();
+            }
+        })
+        .catch(err => console.error("Erro:", err));
 }
 // <------------------------------------------>//
 setInterval(verificarNovasOcorrencias, 5000);
@@ -775,69 +999,5 @@ document.addEventListener('click', function liberarAudio() {
 }, { once: true });
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    const mainContent = document.querySelector('.main-content');
-    const navItems = document.querySelectorAll('.nav-item');
-    const transitionSound = new Audio('../som/troca_pagina.mp3');
-    transitionSound.volume = 0.2;
 
-    // 1. Quando a página abre, dispara a animação de entrada que você já tem
-    mainContent.classList.add('page-active');
-
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            const destination = this.getAttribute('href');
-            
-            // Evita animar se já estiver na página ou se for link vazio
-            if (destination && destination !== '#' && !this.classList.contains('active')) {
-                e.preventDefault();
-
-                // 2. Toca o som de transição
-                transitionSound.play();
-
-                // 3. Aplica o SLIDE de saída (sobrescreve a animação de entrada)
-                mainContent.classList.remove('page-active');
-                mainContent.classList.add('page-exit');
-
-                // 4. Redireciona após a animação acabar
-                setTimeout(() => {
-                    window.location.href = destination;
-                }, 400); 
-            }
-        });
-    });
-});
-
-       document.addEventListener("DOMContentLoaded", () => {
-    const mainContent = document.querySelector('.main-content');
-    const navItems = document.querySelectorAll('.nav-item');
-
-    // 1. Aplica animação de entrada ao carregar
-    mainContent.classList.add('page-enter');
-
-    // 2. Prepara o áudio (Use um link de um som curto tipo "whoosh" ou "click")
-    const transitionSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
-    transitionSound.volume = 0.3; // Volume 30%
-
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            const destination = this.getAttribute('href');
-
-            // Se for um link válido e não for a página atual
-            if (destination && destination !== '#' && !this.classList.contains('active')) {
-                e.preventDefault(); // Para a navegação imediata
-
-                // Toca o som
-                transitionSound.play();
-
-                // Adiciona a classe de saída apenas no conteúdo principal
-                mainContent.classList.add('page-exit');
-
-                // Aguarda 400ms (tempo da animação/som) e navega
-                setTimeout(() => {
-                    window.location.href = destination;
-                }, 450);
-            }
-        });
-    });
-});
+// Nota: A lógica de transições de página agora é gerenciada globalmente pelo transitions.js

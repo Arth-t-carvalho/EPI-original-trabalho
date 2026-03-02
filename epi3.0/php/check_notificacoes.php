@@ -4,50 +4,57 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 
 require_once __DIR__ . '/../config/auth.php';
-// Supondo que dentro de database.php agora você tenha uma conexão MySQLi na variável $conn
-require_once __DIR__ . '/../config/database.php'; 
+require_once __DIR__ . '/../config/database.php';
 
 try {
-    $last_id = isset($_GET['last_id']) ? (int)$_GET['last_id'] : 0;
-    $cursoId = 1;
+    // Pega o last_id enviado pelo JavaScript (padrão é 0 na primeira vez)
+    $last_id = isset($_GET['last_id']) ? (int)$_GET['last_id'] : -1;
 
-    // Se for a primeira carga (init)
+    $cursoId = $_SESSION['usuario_id_curso'] ?? 1;
+
+    // Se for a primeira carga (init), apenas pegamos o último ID do banco
     if ($last_id === 0) {
-        $stmt = $conn->prepare("SELECT MAX(o.id) as max_id FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ?");
-        $stmt->bind_param("i", $cursoId); // "i" para integer
-        $stmt->execute();
-        $result = $stmt->get_result();
+        // MUDANÇA: Usando o $conn do MySQLi em vez de $pdo
+        $result = $conn->query("SELECT MAX(o.id) AS max_id 
+                                FROM ocorrencias o 
+                                JOIN alunos a ON a.id = o.aluno_id 
+                                WHERE a.curso_id = $cursoId");
         $row = $result->fetch_assoc();
-        $maxId = (int) ($row['max_id'] ?? 0);
-        
+        $maxId = (int)($row['max_id'] ?? 0);
+
         echo json_encode([
             'status' => 'init',
-            'last_id' => $maxId
+            'last_id' => $maxId > 0 ? $maxId : -1
         ]);
         exit;
     }
 
-    // Busca ocorrências MAIORES que o last_id
-    $query = "SELECT o.id, a.nome AS aluno,
+    // Se o banco estava vazio no init, ajustamos para 0 para buscar as novas
+    if ($last_id === -1) {
+        $last_id = 0;
+    }
+
+    // Buscamos as ocorrências novas
+    $query = "SELECT o.id, a.nome AS aluno, o.data_hora,
                      CASE o.epi_id
-                        WHEN 1 THEN 'oculos'
-                        WHEN 2 THEN 'capacete'
-                        ELSE 'epi não identificado'
+                        WHEN 1 THEN 'Óculos de Proteção'
+                        WHEN 2 THEN 'Capacete de Segurança'
+                        ELSE 'EPI não identificado'
                      END AS epi_nome
               FROM ocorrencias o
               JOIN alunos a ON a.id = o.aluno_id
-              WHERE a.curso_id = ? AND o.id > ?
+              WHERE o.id > ? AND a.curso_id = ?
               ORDER BY o.id ASC";
 
+    // MUDANÇA: Usando o prepare e bind_param do MySQLi
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ii", $cursoId, $last_id); // dois inteiros
+    $stmt->bind_param("ii", $last_id, $cursoId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    // Transforma o resultado em um Array (equivalente ao fetchAll do PDO)
+
     $novasOcorrencias = [];
-    while ($row = $result->fetch_assoc()) {
-        $novasOcorrencias[] = $row;
+    if ($result) {
+        $novasOcorrencias = $result->fetch_all(MYSQLI_ASSOC);
     }
 
     if (count($novasOcorrencias) > 0) {
@@ -55,16 +62,14 @@ try {
             'status' => 'success',
             'dados' => $novasOcorrencias
         ]);
-    } else {
-        echo json_encode([
-            'status' => 'no_new'
-        ]);
+    }
+    else {
+        echo json_encode(['status' => 'empty']);
     }
 
-} catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => $e->getMessage()
-    ]);
 }
-exit;
+catch (Exception $e) {
+    // Retorna o erro em formato JSON para o JavaScript não quebrar
+    echo json_encode(['status' => 'error', 'message' => 'Erro ao buscar notificacoes']);
+}
+?>

@@ -2,10 +2,11 @@
 // config/database.php
 
 $host = "localhost";
-$db   = "epi_guard";
+$db = "epi_guard";
 $user = "root";
-$pass = ""; 
-$port = 3308; // Sua porta específica
+$pass = "";
+$port = "3308";
+
 
 // Cria a conexão usando MySQLi (Mais leve que PDO)
 $conn = mysqli_connect($host, $user, $pass, $db, $port);

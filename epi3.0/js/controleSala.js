@@ -14,23 +14,16 @@ async function fetchStudents() {
     listContainer.innerHTML = '<div style="padding:20px; text-align:center;">🔄 Conectando ao sistema...</div>';
 
     // CAMINHO RELATIVO AUTOMÁTICO
-    // "../" sai da pasta js
-    // "php/" entra na pasta php
     const url = '../apis/controle.api.php';
-
-    console.log("Tentando buscar em: " + url);
 
     try {
         const response = await fetch(url);
 
-        // Se der erro 404, avisa que o arquivo PHP não existe ou está com nome errado
         if (response.status === 404) {
-            throw new Error(`Arquivo API não encontrado. Verifique se o arquivo 'controle.api.php' existe dentro da pasta 'php'.`);
+            throw new Error(`Arquivo API não encontrado.`);
         }
 
         const text = await response.text();
-        console.log("Resposta do Servidor:", text);
-
         try {
             const data = JSON.parse(text);
 
@@ -39,7 +32,6 @@ async function fetchStudents() {
                 return;
             }
 
-            // SUCESSO!
             students = data;
             renderList();
 
@@ -58,30 +50,22 @@ async function fetchStudents() {
 // 3. LÓGICA DE RENDERIZAÇÃO DA LISTA
 // ==========================================
 
-// Define o estado do aluno baseado nos dados do PHP
 function getStudentState(student) {
-    // O PHP retorna 'missing' como array (ex: ['Óculos']) se tiver risco hoje
     const hasRisk = student.missing && student.missing.length > 0;
-    // O PHP retorna 'history' como true/false
     const hasHistory = student.history;
 
-    if (hasRisk) return 'Risk'; // Prioridade: Risco Ativo
-    if (hasHistory) return 'History'; // Secundário: Histórico
-    return 'Safe'; // Padrão: Regular
+    if (hasRisk) return 'Risk';
+    if (hasHistory) return 'History';
+    return 'Safe';
 }
 
 function renderList(filterText = '', filterStatus = 'all') {
-    // --- 1. CONFIGURAÇÃO VISUAL (Via JS para não mexer no CSS) ---
-
-    // Define o Grid para ser COMPACTO. 
-    // minmax(200px, 240px) = O card nunca fica menor que 200px e NUNCA maior que 240px (evita ficar gigante).
     listContainer.style.display = "grid";
     listContainer.style.gridTemplateColumns = "repeat(auto-fill, minmax(200px, 240px))";
     listContainer.style.gap = "12px";
-    listContainer.style.justifyContent = "start"; // Alinha tudo à esquerda
+    listContainer.style.justifyContent = "start";
     listContainer.innerHTML = '';
 
-    // Filtra os alunos
     const filtered = students.filter(s => {
         const state = getStudentState(s);
         const matchesText = s.name.toLowerCase().includes(filterText.toLowerCase());
@@ -95,9 +79,8 @@ function renderList(filterText = '', filterStatus = 'all') {
         return matchesText && matchesStatus;
     });
 
-    // Se não achar ninguém
     if (filtered.length === 0) {
-        listContainer.style.display = "flex"; // Flex para centralizar a mensagem
+        listContainer.style.display = "flex";
         listContainer.style.justifyContent = "center";
         listContainer.innerHTML = `
             <div style="text-align:center; padding: 40px; color: #94a3b8; animation: fadeIn 0.5s;">
@@ -106,35 +89,29 @@ function renderList(filterText = '', filterStatus = 'all') {
         return;
     }
 
-    // --- 2. RENDERIZAÇÃO DOS CARDS ---
     filtered.forEach((student, index) => {
         const state = getStudentState(student);
         const initials = student.name.substring(0, 2).toUpperCase();
 
-        // Configuração de cores e ícones minimalistas
         let borderColor = 'transparent';
         let badgeBg = '#F3F4F6';
         let badgeColor = '#6B7280';
-        let badgeText = 'Regular';
         let icon = '';
 
         if (state === 'Risk') {
-            borderColor = '#EF4444'; // Vermelho
+            borderColor = '#EF4444';
             badgeBg = '#FEF2F2';
             badgeColor = '#EF4444';
-            badgeText = 'Faltante';
             icon = '⚠️';
         } else if (state === 'History') {
-            borderColor = '#F59E0B'; // Amarelo
+            borderColor = '#F59E0B';
             badgeBg = '#FFFBEB';
             badgeColor = '#D97706';
-            badgeText = 'Atenção';
             icon = '🔔';
         }
 
         const card = document.createElement('div');
 
-        // Estilo Card Compacto e Limpo
         card.style.cssText = `
             background: white;
             border-radius: 12px;
@@ -149,15 +126,12 @@ function renderList(filterText = '', filterStatus = 'all') {
             transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
-            
-            /* ANIMAÇÃO DE ENTRADA (Pop In) */
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             opacity: 0;
             transform: scale(0.9);
-            animation-delay: ${index * 0.05}s; /* Efeito cascata */
+            animation-delay: ${index * 0.05}s;
         `;
 
-        // Efeito Hover
         card.onmouseenter = () => {
             card.style.transform = "translateY(-2px) scale(1.02)";
             card.style.boxShadow = "0 8px 16px -4px rgba(0,0,0,0.1)";
@@ -169,7 +143,6 @@ function renderList(filterText = '', filterStatus = 'all') {
 
         card.onclick = () => openModal(student);
 
-        // HTML Interno (Minimalista)
         card.innerHTML = `
             <div style="
                 width: 38px; height: 38px; 
@@ -202,7 +175,6 @@ function renderList(filterText = '', filterStatus = 'all') {
         listContainer.appendChild(card);
     });
 
-    // Injeta a animação no CSS da página (apenas uma vez) se não existir
     if (!document.getElementById('anim-style')) {
         const style = document.createElement('style');
         style.id = 'anim-style';
@@ -215,50 +187,38 @@ function renderList(filterText = '', filterStatus = 'all') {
         document.head.appendChild(style);
     }
 }
+
 // ==========================================
 // 4. LÓGICA DO MODAL
 // ==========================================
-// ==========================================
-// FUNÇÃO DO MODAL (BLINDADA)
-// ==========================================
-function openModal(student) {
-    console.log("Tentando abrir modal para:", student); // Vai aparecer no F12
 
-    // 1. Verifica se o modal existe no HTML
+function openModal(student) {
     const modalElement = document.getElementById('detailModal');
     if (!modalElement) {
-        alert("Erro: O HTML do modal (id='detailModal') não foi encontrado!");
+        console.error("Modal 'detailModal' não encontrado!");
         return;
     }
 
-    // 2. Garante que 'missing' é um array (para não travar o JS)
-    // Se vier nulo do PHP, transformamos em array vazio []
     const missingEpis = Array.isArray(student.missing) ? student.missing : [];
+    const state = getStudentState(student);
 
-    // 3. Preenche os textos básicos
     const nomeEl = document.getElementById('modalName');
     const cursoEl = document.getElementById('modalCourse');
 
     if (nomeEl) nomeEl.innerText = student.name;
     if (cursoEl) cursoEl.innerText = `${student.course} • ID #${student.id}`;
 
-    // 4. Preenche a lista de EPIs
     const epiContainer = document.getElementById('modalEpiList');
     if (epiContainer) {
-        epiContainer.innerHTML = ''; // Limpa lista antiga
-
-        // Lista de verificação
+        epiContainer.innerHTML = '';
         const checkListEpis = ["Capacete", "Óculos"];
 
         checkListEpis.forEach(epi => {
-            // Verifica se está na lista de faltantes
-            // O 'toLowerCase' evita erro de maiúscula/minúscula
             const isMissing = missingEpis.some(m =>
                 typeof m === 'string' && m.toLowerCase().includes(epi.toLowerCase())
             );
 
             const item = document.createElement('div');
-            // Estilo direto para garantir que apareça bonito
             item.style.cssText = "display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;";
 
             if (isMissing) {
@@ -270,31 +230,38 @@ function openModal(student) {
         });
     }
 
-   // 5. Botões do Rodapé
-const footer = document.getElementById('modalFooterActions');
-if (footer) {
-    // Note que removemos a segunda declaração "const footer =" que estava aqui
-    const nomeSeguro = (student.name || '').replace(/'/g, "\\'");
+    const footer = document.getElementById('modalFooterActions');
+    if (footer) {
+        const nomeSeguro = (student.name || '').replace(/'/g, "\\'");
+        const episSafe = missingEpis.join(', ').replace(/'/g, "\\'");
 
-    footer.innerHTML = `
-        <button class="btn-view-infracoes" onclick="window.location.href='infracoes.php?periodo=todos&busca=${encodeURIComponent(student.name)}'">
-            <i data-lucide="search"></i> Ver Infrações
-        </button>
-        <button class="btn-open-occurrence" onclick="window.location.href='ocorrencias.php?novo=true&aluno_id=${student.id}'">
-            <i data-lucide="plus-circle"></i> Abrir Ocorrência
-        </button>
-    `;
+        // Bloqueio: Só permite abrir ocorrência se o estado NÃO for "Safe"
+        const isSafe = state === 'Safe';
 
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        footer.innerHTML = `
+            <button class="btn-view-infracoes" onclick="irParaInfracoes('${nomeSeguro}')">
+                <i data-lucide="search"></i> Ver Infrações
+            </button>
+            <button class="btn-open-occurrence" 
+                ${isSafe ? 'disabled style="opacity: 0.5; cursor: not-allowed; background: #94a3b8; border-color: #94a3b8;"' : ''} 
+                onclick="abrirOcorrencia(${student.id}, '${nomeSeguro}', '${episSafe}')">
+                <i data-lucide="plus-circle"></i> Abrir Ocorrência
+            </button>
+        `;
+
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
-}
 
-    // 6. FINALMENTE: Mostra o modal
-    // Tenta as duas formas mais comuns de mostrar modal
+    // Mostra o modal - usando ambas as classes para garantir compatibilidade com o CSS
     modalElement.style.display = 'flex';
+    modalElement.classList.add('active');
     modalElement.classList.add('open');
 }
+
+// Alias para compatibilidade com versões anteriores que usavam esse nome
+window.exibirDetalhesAluno = openModal;
 
 function closeModal() {
     const modalElement = document.getElementById('detailModal');
@@ -304,7 +271,37 @@ function closeModal() {
         modalElement.classList.remove('open');
     }
 }
-// Fecha ao clicar fora
+
+// Funções de Navegação
+function irParaInfracoes(nomeAluno) {
+    if (!nomeAluno) return;
+    const nomeCodificado = encodeURIComponent(nomeAluno);
+    const url = `infracoes.php?periodo=hoje&busca=${nomeCodificado}`;
+
+    if (window.navigateTo) {
+        window.navigateTo(url);
+    } else {
+        window.location.href = url;
+    }
+}
+
+function abrirOcorrencia(id, nome, epis) {
+    if (!id) return;
+    const params = new URLSearchParams({
+        novo: 'true',
+        aluno_id: id,
+        name: nome,
+        epi: epis
+    });
+    const url = `ocorrencias.php?${params.toString()}`;
+
+    if (window.navigateTo) {
+        window.navigateTo(url);
+    } else {
+        window.location.href = url;
+    }
+}
+
 window.onclick = function (event) {
     if (event.target == modal) {
         closeModal();
@@ -317,7 +314,6 @@ window.onclick = function (event) {
 document.addEventListener('DOMContentLoaded', () => {
     fetchStudents();
 
-    // Eventos de Filtro e Busca
     if (searchInput) {
         searchInput.addEventListener('keyup', (e) => renderList(e.target.value, statusFilter.value));
     }
@@ -325,67 +321,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statusFilter) {
         statusFilter.addEventListener('change', (e) => renderList(searchInput.value, e.target.value));
     }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 });
 
-// Dropdown do usuário (Header)
 function toggleInstructorCard() {
     const card = document.getElementById('instructorCard');
     if (card) {
         card.style.display = (card.style.display === 'block') ? 'none' : 'block';
     }
 }
-function toggleInstructorCard() {
-    const card = document.getElementById('instructorCard');
-    card.style.display = (card.style.display === 'block') ? 'none' : 'block';
-}
-
-   // 1. CARREGAMENTO INICIAL (Para a Sidebar e menu lateral)
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        });
-
-        window.exibirDetalhesAluno = function (aluno) {
-            console.log("Abrindo modal para o aluno:", aluno);
-
-            document.getElementById('modalName').innerText = aluno.nome || 'Nome não informado';
-            document.getElementById('modalCourse').innerText = aluno.curso || 'Curso não informado';
-
-            const footer = document.getElementById('modalFooterActions');
-            const nomeSeguro = (aluno.nome || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const alunoIdSafe = aluno.id || 0;
-
-            // Inserindo os botões
-            footer.innerHTML = `
-            <button class="btn-view-infracoes" onclick="irParaInfracoes('${nomeSeguro}')">
-                <i data-lucide="search"></i> Ver Infrações
-            </button>
-            <button class="btn-open-occurrence" onclick="abrirOcorrencia(${alunoIdSafe})">
-                <i data-lucide="plus-circle"></i> Abrir Ocorrência
-            </button>
-        `;
-
-            // 2. RE-RENDERIZAÇÃO DO MODAL (O segredo está no setTimeout)
-            // Usamos um tempo de 0ms apenas para empurrar a execução para o final da fila do navegador
-            setTimeout(() => {
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
-            }, 10);
-
-            const modal = document.getElementById('detailModal');
-            modal.classList.add('active');
-        };
-
-
-        function irParaInfracoes(nomeAluno) {
-            if (!nomeAluno) return;
-            const nomeCodificado = encodeURIComponent(nomeAluno);
-            window.location.href = `infracoes.php?periodo=todos&busca=${nomeCodificado}`;
-        }
-
-        function abrirOcorrencia(id) {
-            if (!id) return;
-            window.location.href = `ocorrencias.php?novo=true&aluno_id=${id}`;
-        }

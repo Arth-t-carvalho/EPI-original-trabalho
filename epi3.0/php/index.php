@@ -26,9 +26,13 @@
                 </div>
 
                 <button type="submit">Entrar</button>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="cadastro.php" style="color: #666; text-decoration: none; font-size: 14px;">Não tem uma conta? <span style="color: #E30613; font-weight: bold;">Cadastre-se</span></a>
+                </div>
                 <?php if (isset($_GET['erro'])): ?>
                     <div class="erro">Usuário ou senha inválidos</div>
-                <?php endif; ?>
+                <?php
+endif; ?>
 
 
             </form>

@@ -39,7 +39,7 @@
             color: var(--text-main);
         }
 
-       
+
 
         /* --- 3. MAIN CONTENT & HEADER --- */
         .main-content {
@@ -171,7 +171,7 @@
             display: block;
         }
 
-    
+
         .detail-row {
             display: flex;
             justify-content: space-between;
@@ -313,7 +313,7 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
-     
+
 
         .student-card:hover {
             transform: translateY(-4px);
@@ -426,7 +426,8 @@
             height: 100%;
             background: rgba(31, 41, 55, 0.6);
             backdrop-filter: blur(4px);
-            z-index: 1000;
+            z-index: 10000;
+            /* Garante que fique acima de tudo */
             display: none;
             justify-content: center;
             align-items: center;
@@ -434,7 +435,8 @@
             transition: opacity 0.3s ease;
         }
 
-        .modal-overlay.open {
+        /* Usamos .active para mostrar o modal */
+        .modal-overlay.active {
             display: flex;
             opacity: 1;
         }
@@ -449,9 +451,10 @@
             transform: scale(0.95);
             transition: transform 0.3s ease;
             border: 1px solid var(--border);
+            position: relative;
         }
 
-        .modal-overlay.open .modal-content {
+        .modal-overlay.active .modal-content {
             transform: scale(1);
         }
 
@@ -576,6 +579,7 @@
             transform: translateY(-10px);
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
+
         /* CSS Rápido para garantir funcionamento básico do modal e layout */
         .modal-overlay {
             display: none;
@@ -631,7 +635,6 @@
         }
 
 
-        
 
 
 
@@ -643,7 +646,8 @@
 
 
 
-          /* Container dos botões no rodapé do modal */
+
+        /* Container dos botões no rodapé do modal */
         /* Container dos botões no rodapé do modal */
 
 
@@ -651,71 +655,87 @@
         /* BOTÃO VER INFRAÇÕES - VERSÃO AMPLIADA */
         /* Estilo Base para AMBOS os botões (Garante tamanho igual) */
         /* --- Estilos Base e Compartilhados --- */
-.btn-view-infracoes,
-.btn-open-occurrence {
-    width: 100%; /* Mantém a largura total do container */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Espaçamento uniforme entre o ícone e o texto */
+        .btn-view-infracoes,
+        .btn-open-occurrence {
+            width: 100%;
+            /* Mantém a largura total do container */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            /* Espaçamento uniforme entre o ícone e o texto */
 
-    /* Tamanho Reduzido e Elegante */
-    padding: 10px 16px; /* Altura menor, mais delicado */
-    min-height: 42px; /* Reduzido de 56px para um padrão mais moderno */
-    border-radius: 8px; /* Arredondamento mais sutil (era 12px) */
+            /* Tamanho Reduzido e Elegante */
+            padding: 10px 16px;
+            /* Altura menor, mais delicado */
+            min-height: 42px;
+            /* Reduzido de 56px para um padrão mais moderno */
+            border-radius: 8px;
+            /* Arredondamento mais sutil (era 12px) */
 
-    /* Tipografia Corrigida e Padronizada */
-    font-size: 14px; /* Fonte um pouco menor */
-    font-weight: 600; /* Corrigido: usando peso 600 (Semibold) */
-    letter-spacing: 0.3px; /* Espaçamento de letras mais suave */
+            /* Tipografia Corrigida e Padronizada */
+            font-size: 14px;
+            /* Fonte um pouco menor */
+            font-weight: 600;
+            /* Corrigido: usando peso 600 (Semibold) */
+            letter-spacing: 0.3px;
+            /* Espaçamento de letras mais suave */
 
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-}
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
 
-/* Ícones Proporcionais */
-.btn-view-infracoes i,
-.btn-open-occurrence i,
-.btn-view-infracoes svg,
-.btn-open-occurrence svg {
-    width: 18px; /* Ícones levemente menores para acompanhar o botão */
-    height: 18px;
-    stroke-width: 2px; /* Traço mais limpo */
-}
+        /* Ícones Proporcionais */
+        .btn-view-infracoes i,
+        .btn-open-occurrence i,
+        .btn-view-infracoes svg,
+        .btn-open-occurrence svg {
+            width: 18px;
+            /* Ícones levemente menores para acompanhar o botão */
+            height: 18px;
+            stroke-width: 2px;
+            /* Traço mais limpo */
+        }
 
-/* --- Estilos Individuais (Cores) --- */
+        /* --- Estilos Individuais (Cores) --- */
 
-/* 1. Botão Ver Infrações (Cinza Moderno) */
-/* 1. Botão Ver Infrações (Cinza Moderno) */
-.btn-view-infracoes {
-    background-color: #f1f5f9; 
-    color: #475569; 
-    border: 1px solid #e2e8f0; 
-    
-    /* ADICIONE ESTA LINHA ABAIXO PARA O ESPAÇAMENTO */
-    margin-bottom: 12px; /* Aumente para 16px ou 20px se quiser ainda mais espaço */
-}
+        /* 1. Botão Ver Infrações (Cinza Moderno) */
+        /* 1. Botão Ver Infrações (Cinza Moderno) */
+        .btn-view-infracoes {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
 
-.btn-view-infracoes:hover {
-    background-color: #e2e8f0; /* Fica um tom mais escuro ao passar o mouse */
-    color: #1e293b; /* Texto mais forte */
-    transform: translateY(-1px);
-}
+            /* ADICIONE ESTA LINHA ABAIXO PARA O ESPAÇAMENTO */
+            margin-bottom: 12px;
+            /* Aumente para 16px ou 20px se quiser ainda mais espaço */
+        }
 
-/* 2. Botão Abrir Ocorrência (Vermelho Alerta) */
-.btn-open-occurrence {
-    background-color: #ef4444;
-    color: white;
-    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15); /* Sombra mais leve */
-}
+        .btn-view-infracoes:hover {
+            background-color: #e2e8f0;
+            /* Fica um tom mais escuro ao passar o mouse */
+            color: #1e293b;
+            /* Texto mais forte */
+            transform: translateY(-1px);
+        }
 
-.btn-open-occurrence:hover {
-    background-color: #dc2626; /* Vermelho um tom mais fechado no hover */
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);
-}
+        /* 2. Botão Abrir Ocorrência (Vermelho Alerta) */
+        .btn-open-occurrence {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15);
+            /* Sombra mais leve */
+        }
 
+        .btn-open-occurrence:hover {
+            background-color: #dc2626;
+            /* Vermelho um tom mais fechado no hover */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);
+        }
+
+        /* Fim das definições do Modal */
         /* Ajuste do Modal Overlay para alinhar ao centro */
         .modal-overlay {
             display: none;

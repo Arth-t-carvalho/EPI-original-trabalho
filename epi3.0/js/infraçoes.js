@@ -1,65 +1,59 @@
 // Verifica se o JS carregou
 console.log("Infracoes.js carregado com sucesso.");
 
-// Seleciona elementos do Modal
-const modal = document.getElementById('imageModal');
-const modalImg = document.getElementById('modalImg');
-const modalName = document.getElementById('modalName');
-const modalDesc = document.getElementById('modalDesc');
-const modalTime = document.getElementById('modalTime');
-const btnAssinar = document.getElementById('btnAssinar');
-
-// --- FUNÇÃO PRINCIPAL ---
-// Chamada pelo onclick do PHP
-function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta) {
-    console.log("Tentando abrir modal:", nome); // Debug
-
-    if (!modal) {
-        console.error("Erro: Modal não encontrado no HTML!");
-        return;
-    }
-
-    // 1. Preenche os dados visuais
-    if (modalImg) modalImg.src = imgUrl;
-    if (modalName) modalName.innerText = nome;
-    if (modalDesc) modalDesc.innerText = "Falta de: " + epi;
-    if (modalTime) modalTime.innerText = "Horário: " + horaTexto;
-
-    // 2. Configura o botão vermelho
-    if (btnAssinar) {
-        // Remove eventos antigos clonando o botão (opcional, mas evita cliques duplos)
-        const novoBotao = btnAssinar.cloneNode(true);
-        btnAssinar.parentNode.replaceChild(novoBotao, btnAssinar);
-
-        novoBotao.onclick = function () {
-            const params = new URLSearchParams({
-                aluno: nome,
-                epi: epi,
-                data: dataCompleta
-            });
-            window.location.href = `ocorrencias.php?${params.toString()}`;
-        };
-    }
-
-    // 3. Mostra o modal
-    modal.classList.add('active');
-}
-
-// Fecha ao clicar fora (no fundo escuro)
-function closeModal(e) {
-    if (e.target === modal) {
-        modal.classList.remove('active');
-    }
-}
-
-// Fecha ao clicar no X
-function forceClose() {
-    if (modal) modal.classList.remove('active');
-}
-
-// --- OUTROS ---
-// Função de Transição de Página (Sidebar)
 document.addEventListener("DOMContentLoaded", () => {
+    lucide.createIcons();
+
+    const searchInput = document.getElementById('searchInput');
+    const cards = document.querySelectorAll('.violation-card');
+    const container = document.getElementById('cardsContainer');
+
+    // --- Lógica de Pesquisa Funcional ---
+    if (searchInput) {
+        searchInput.addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            let hasResults = false;
+
+            cards.forEach(card => {
+                const studentName = card.querySelector('.infrator-name').textContent.toLowerCase();
+                const epiName = card.querySelector('.violation-tag').textContent.toLowerCase();
+                const details = card.querySelector('.timestamp').textContent.toLowerCase();
+
+                const matches = studentName.includes(searchTerm) ||
+                    epiName.includes(searchTerm) ||
+                    details.includes(searchTerm);
+
+                if (matches) {
+                    card.classList.remove('hidden-search');
+                    card.style.display = 'flex';
+                    hasResults = true;
+                } else {
+                    card.classList.add('hidden-search');
+                    setTimeout(() => {
+                        if (card.classList.contains('hidden-search')) {
+                            card.style.display = 'none';
+                        }
+                    }, 400);
+                }
+            });
+
+            // Gerenciar mensagem de "Nenhum resultado"
+            let noResultsMsg = document.getElementById('noResultsMsg');
+            if (!hasResults && searchTerm !== '') {
+                if (!noResultsMsg) {
+                    noResultsMsg = document.createElement('p');
+                    noResultsMsg.id = 'noResultsMsg';
+                    noResultsMsg.style.cssText = 'padding: 40px; color: #64748B; text-align: center; width: 100%; font-weight: 500; animation: fadeIn 0.5s ease;';
+                    noResultsMsg.textContent = '🔍 Nenhum aluno ou infração encontrada para "' + searchTerm + '"';
+                    container.appendChild(noResultsMsg);
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        });
+    }
+
+    // --- Links de Navegação Sidebar ---
     const links = document.querySelectorAll('a.nav-item');
     links.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -70,23 +64,95 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => { window.location.href = href; }, 300);
         });
     });
+
+    // --- Verificar parâmetros da URL para busca automática ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoBusca = urlParams.get('busca');
+    if (autoBusca && searchInput) {
+        searchInput.value = autoBusca;
+        // Dispara o evento de input para filtrar os cards
+        searchInput.dispatchEvent(new Event('input'));
+    }
 });
 
-function openModalPHP(src, nome, epi, hora, dataCompleta) {
+// --- FUNÇÃO DO MODAL (Chamada pelo PHP) ---
+function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorrenciaId, isAssinada = 0) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImg');
     const modalName = document.getElementById('modalName');
     const modalDesc = document.getElementById('modalDesc');
     const modalTime = document.getElementById('modalTime');
+    const btnAssinar = document.getElementById('btnAssinar');
 
-    // Define os valores no modal
-    modalImg.src = src;
-    modalName.innerText = nome;
-    modalDesc.innerText = "Infração: " + epi;
-    modalTime.innerText = "Horário: " + hora + " | Data: " + dataCompleta;
+    if (!modal) return;
 
-    // Exibe o modal
+    // 1. Preenche os dados visuais
+    if (modalImg) modalImg.src = imgUrl;
+    if (modalName) modalName.innerText = nome;
+    if (modalDesc) modalDesc.innerText = "Infração: " + epi;
+    if (modalTime) modalTime.innerText = "Horário: " + horaTexto + " | Data: " + dataCompleta;
+
+    // 2. Configura o botão de assinar
+    if (btnAssinar) {
+        if (isAssinada) {
+            btnAssinar.innerText = "ASSINADO";
+            btnAssinar.disabled = true;
+            btnAssinar.style.background = "#ecfdf5";
+            btnAssinar.style.color = "#059669";
+            btnAssinar.style.border = "1px solid #059669";
+            btnAssinar.style.cursor = "default";
+            btnAssinar.onclick = null;
+        } else {
+            btnAssinar.innerText = "Assinar Ocorrência";
+            btnAssinar.disabled = false;
+            btnAssinar.style = ""; // Reseta estilos
+            btnAssinar.onclick = function () {
+                const params = new URLSearchParams({
+                    ocorrencia_id: ocorrenciaId,
+                    aluno_id: alunoId,
+                    epi: epi,
+                    data: dataCompleta,
+                    hora: horaTexto
+                });
+                window.location.href = `ocorrencias.php?${params.toString()}`;
+            };
+        }
+    }
+
+    // 3. Mostra o modal
     modal.classList.add('active');
+}
+
+// --- FUNÇÃO DE DISPENSAR OCORRÊNCIA ---
+function dismissOccurrence(id) {
+    if (!confirm("Deseja remover esta infração da sua visualização?")) return;
+
+    const formData = new FormData();
+    formData.append('ocorrencia_id', id);
+
+    fetch('../apis/api.php?action=dismiss_occurrence', {
+        method: 'POST',
+        body: formData
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.getElementById(`card-${id}`);
+                if (card) {
+                    card.style.transform = "scale(0.8)";
+                    card.style.opacity = "0";
+                    setTimeout(() => {
+                        card.remove();
+                    }, 300);
+                }
+            } else {
+                alert("Erro ao ocultar infração: " + (data.error || "Erro desconhecido"));
+            }
+        })
+        .catch(err => {
+            console.error("Erro:", err);
+            alert("Erro na conexão com o servidor.");
+        });
 }
 
 function closeModal(event) {
@@ -97,39 +163,8 @@ function closeModal(event) {
 
 function forceClose() {
     const modal = document.getElementById('imageModal');
-    modal.classList.remove('active');
-    // Limpa a imagem para não aparecer a anterior ao abrir um novo card
-    document.getElementById('modalImg').src = "";
+    if (modal) {
+        modal.classList.remove('active');
+        document.getElementById('modalImg').src = "";
+    }
 }
-
-        lucide.createIcons();
-        // (Mantive seus scripts de busca e modal originais abaixo)
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const term = this.value.toLowerCase();
-            const cards = document.querySelectorAll('.violation-card');
-            cards.forEach(card => {
-                const content = card.innerText.toLowerCase();
-                if (content.includes(term)) {
-                    card.style.display = "block";
-                    setTimeout(() => { card.style.opacity = "1"; card.style.transform = "scale(1)"; }, 10);
-                } else {
-                    card.style.opacity = "0";
-                    card.style.transform = "scale(0.95)";
-                    setTimeout(() => { if(card.style.opacity === "0") card.style.display = "none"; }, 300);
-                }
-            });
-        });
-
-        function openModalPHP(src, nome, epi, hora, dataCompleta) {
-            document.getElementById('modalImg').src = src;
-            document.getElementById('modalName').innerText = nome;
-            document.getElementById('modalDesc').innerText = "Infração: " + epi;
-            document.getElementById('modalTime').innerText = "Horário: " + hora + " | Data: " + dataCompleta;
-            document.getElementById('imageModal').classList.add('active');
-        }
-
-        function forceClose() {
-            document.getElementById('imageModal').classList.remove('active');
-            document.getElementById('modalImg').src = "";
-        }
-        function closeModal(event) { if (event.target.id === 'imageModal') forceClose(); }

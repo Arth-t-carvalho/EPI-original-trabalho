@@ -1,10 +1,11 @@
 <?php
 session_start();
 // O arquivo database.php agora deve conter a conexão $conn usando mysqli_connect
-require_once 'database.php'; 
+require_once 'database.php';
+
 
 $usuario = $_POST['usuario'] ?? '';
-$senha   = $_POST['senha'] ?? '';
+$senha = $_POST['senha'] ?? '';
 
 // Validação básica
 if (empty($usuario) || empty($senha)) {
@@ -34,13 +35,14 @@ $user = mysqli_fetch_assoc($result);
 if ($user && $senha == $user['senha']) {
 
     $_SESSION['usuario_id'] = $user['id'];
-    $_SESSION['nome']       = $user['nome'];
-    $_SESSION['cargo']      = $user['cargo'];
+    $_SESSION['nome'] = $user['nome'];
+    $_SESSION['cargo'] = $user['cargo'];
 
     header("Location: ../php/dashboard.php");
     exit;
 
-} else {
+}
+else {
     header("Location: ../php/index.php?erro=login");
     exit;
 }
