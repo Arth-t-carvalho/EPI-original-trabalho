@@ -111,6 +111,7 @@
             });
 
             const togglePassword = document.querySelector('#togglePassword');
+            if (togglePassword) {
                 togglePassword.addEventListener('click', function() {
                     const passwordInput = document.querySelector('#passwordInput');
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';

@@ -35,7 +35,7 @@
         <!-- Lado Direito: Formulário de Autenticação -->
         <div class="login-right">
             <div class="login-right-header">
-                <h2>Sign In</h2>
+                <h2>Acessar</h2>
                 <p>Insira as suas credenciais administrativas.</p>
             </div>
 
