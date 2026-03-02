@@ -77,4 +77,67 @@ function changeChartColor(color) {
     
     // Salva a cor escolhida no navegador para não perder no F5
     localStorage.setItem('chartColor', color);
+<<<<<<< Updated upstream
 }
+=======
+}
+
+function toggleSound(checkbox) {
+    localStorage.setItem('soundEnabled', checkbox.checked);
+}
+
+//eu adicione isso aqui - Pirra
+function toggleNavSound(checkbox) {
+    localStorage.setItem('navSoundEnabled', checkbox.checked);
+}
+
+// Inicializa os checkboxes com os valores do localStorage
+document.addEventListener('DOMContentLoaded', () => {
+    const soundToggle = document.getElementById('toggle-sound');
+    if (soundToggle) {
+        const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+        soundToggle.checked = soundEnabled;
+    }
+
+    const navSoundToggle = document.getElementById('toggle-nav-sound');
+    if (navSoundToggle) {
+        // Inicializa o switch de som de transição - Pirra alterou aqui
+        const navSoundEnabled = localStorage.getItem('navSoundEnabled') !== 'false';
+        navSoundToggle.checked = navSoundEnabled;
+    }
+
+    const linksToggle = document.getElementById('toggle-link');
+    if (linksToggle) {
+        linksToggle.checked = localStorage.getItem('linksEnabled') === 'true';
+    }
+
+    const percentToggle = document.getElementById('toggle-percent');
+    if (percentToggle) {
+        percentToggle.checked = localStorage.getItem('showPercentages') !== 'false';
+    }
+
+    const statusToggle = document.getElementById('toggle-status');
+    if (statusToggle) {
+        statusToggle.checked = localStorage.getItem('showStatusBadges') !== 'false';
+    }
+
+    // Inicializa Tipo de Gráfico
+    const chartTypeSelect = document.querySelector('select[onchange="changeChartType(this.value)"]');
+    if (chartTypeSelect) {
+        chartTypeSelect.value = localStorage.getItem('chartType') || 'bar';
+    }
+
+    // Inicializa Cores
+    const colorAll = document.getElementById('color-all');
+    if (colorAll) colorAll.value = localStorage.getItem('chartColor_all') || '#E30613';
+
+    const colorHelmet = document.getElementById('color-helmet');
+    if (colorHelmet) colorHelmet.value = localStorage.getItem('chartColor_helmet') || '#1F2937';
+
+    const colorGlasses = document.getElementById('color-glasses');
+    if (colorGlasses) colorGlasses.value = localStorage.getItem('chartColor_glasses') || '#9CA3AF';
+
+    // Inicializa visibilidade globalmente ao carregar a página
+    if (typeof applyPercentageVisibility === 'function') applyPercentageVisibility();
+});
+>>>>>>> Stashed changes
