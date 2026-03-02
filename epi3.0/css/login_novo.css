@@ -357,3 +357,114 @@ body {
         font-size: 36px;
     }
 }
+
+
+/* =========================================
+   ANIMAÇÃO DE TRANSIÇÃO (ENTRADA DASHBOARD)
+   ========================================= */
+
+.transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.transition-panel {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    /* Inicia totalmente fora à direita */
+    width: 100%;
+    height: 100%;
+    background: var(--primary-gradient);
+    /* Sombra intensa na borda esquerda para simular a dobra/profundidade da folha */
+    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
+    transition: transform 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+    will-change: transform;
+}
+
+.transition-content {
+    position: relative;
+    z-index: 100;
+    color: white;
+    /* Mantido branco para visibilidade no fundo vermelho */
+    text-align: center;
+    opacity: 0;
+    transform: translateX(100px);
+    /* Começa mais à direita para acompanhar o slide */
+    transition: all 0.7s cubic-bezier(0.19, 1, 0.22, 1) 0.3s;
+}
+
+.transition-overlay.active {
+    display: flex;
+}
+
+.transition-overlay.active .transition-panel {
+    transform: translateX(-100%);
+    /* Desliza cobrindo a página anterior */
+}
+
+.transition-overlay.active .transition-content {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.transition-logo {
+    font-size: 80px;
+    font-weight: 900;
+    margin-bottom: 5px;
+    letter-spacing: -2px;
+}
+
+.transition-text {
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    opacity: 0.8;
+    margin-bottom: 30px;
+}
+
+.progress-container {
+    width: 300px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: white;
+    transition: width 1.5s linear;
+}
+
+/* Efeitos de saída no conteúdo do login */
+.fade-out {
+    opacity: 0 !important;
+    transform: scale(0.95) !important;
+    transition: all 0.5s ease-out !important;
+}
+
+/* Fade In para o Dashboard */
+.fade-in-page {
+    animation: fadeInPage 0.8s forwards;
+}
+
+@keyframes fadeInPage {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

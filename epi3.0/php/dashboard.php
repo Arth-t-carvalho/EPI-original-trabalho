@@ -137,7 +137,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 
-<body>
+<body class="fade-in-page">
 
  
    <?php include __DIR__ . '/../components/sidebar.php'; ?>

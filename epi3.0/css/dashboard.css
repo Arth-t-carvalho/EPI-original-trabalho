@@ -43,10 +43,22 @@ body {
     color: var(--text-main);
 }
 
-/* =========================================
-   ANIMAÇÕES
-   ========================================= */
 /* Animação de ENTRADA (suave) */
+.fade-in-page {
+    animation: fadeInPage 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeInPage {
+    from {
+        opacity: 0;
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
 
 
 /* Animação de SAÍDA (O Slide que você pediu) */

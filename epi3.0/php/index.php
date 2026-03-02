@@ -1,14 +1,13 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EPI GUARD | Login</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Estilos -->
     <link rel="stylesheet" href="../css/login_novo.css">
+    <style>
+        /* Ajuste para evitar que o overlay apareça antes do tempo */
+        .transition-overlay { display: none; }
+        .transition-overlay.active { display: flex; }
+    </style>
 </head>
 
 <body>
@@ -67,7 +66,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-login">
+                <button type="submit" class="btn-login" onclick="handleLogin(event)">
                     ENTRAR <i data-lucide="chevron-right"></i>
                 </button>
 
@@ -76,8 +75,18 @@
                     <a href="cadastro.php">Não tem uma conta? Cadastre-se</a>
                 </div>
             </form>
+        </div>
+    </div>
 
-      
+    <!-- Overlay de Transição -->
+    <div id="transitionOverlay" class="transition-overlay">
+        <div class="transition-panel"></div>
+        <div class="transition-content">
+            <div class="transition-logo">SENAI</div>
+            <div class="transition-text">A AUTENTICAR SISTEMA</div>
+            <div class="progress-container">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
         </div>
     </div>
 
@@ -85,32 +94,66 @@
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
 
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function(e) {
-                const user = document.querySelector('#loginUser').value.trim();
-                
-                const isGmail = user.toLowerCase().endsWith('@gmail.com');
-                const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
+            // Lógica de mostrar/ocultar senha
+            const togglePassword = document.querySelector('#togglePassword');
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const passwordInput = document.querySelector('#passwordInput');
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
 
-                if (!isGmail && !isCPF) {
-                    e.preventDefault();
-                    alert("Por favor, insira um Gmail válido ou um CPF (apenas números).");
-                }
-            });
-
-            togglePassword.addEventListener('click', function() {
-                const passwordInput = document.querySelector('#passwordInput');
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-
-                // Alterna o ícone baseado no estado
-                const iconContainer = this;
-                const newIconName = type === 'password' ? 'eye-off' : 'eye';
-                
-                iconContainer.innerHTML = `<i data-lucide="${newIconName}"></i>`;
-                lucide.createIcons();
-            });
+                    const iconContainer = this;
+                    const newIconName = type === 'password' ? 'eye-off' : 'eye';
+                    
+                    iconContainer.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+                    lucide.createIcons();
+                });
+            }
         });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const user = document.querySelector('#loginUser').value.trim();
+            const pass = document.querySelector('#passwordInput').value;
+
+            // Validação de Gmail ou CPF (Frontend)
+            const isGmail = user.toLowerCase().endsWith('@gmail.com');
+            const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
+
+            if (!isGmail && !isCPF) {
+                alert("Por favor, insira um Gmail válido ou um CPF (apenas números).");
+                return;
+            }
+
+            if (!user || !pass) {
+                alert("Preencha todos os campos.");
+                return;
+            }
+
+            // Inicia Animação de Transição
+            const card = document.querySelector('.login-card');
+            const overlay = document.getElementById('transitionOverlay');
+            const progressFill = document.getElementById('progressFill');
+
+            // 1. Fade out suave do card
+            card.classList.add('fade-out');
+
+            setTimeout(() => {
+                // 2. Ativa overlay e expande painel vermelho
+                overlay.classList.add('active');
+                
+                setTimeout(() => {
+                    // 3. Inicia preenchimento da barra de progresso (1.5s)
+                    progressFill.style.width = '100%';
+                    
+                    setTimeout(() => {
+                        // 4. Envia o formulário após a animação
+                        form.submit();
+                    }, 1600); // 1.5s da barra + um tempinho de segurança
+                }, 500);
+            }, 300);
+        }
     </script>
 </body>
 
