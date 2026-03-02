@@ -7,7 +7,16 @@ $nomeUsuario = $_SESSION['nome'] ?? 'Instrutor';
 $cargoUsuario = $_SESSION['cargo'] ?? 'Supervisor';
 $iniciais = strtoupper(substr($nomeUsuario, 0, 2));
 
-// Busca informações do curso
+// VERIFICA SE É SUPER ADMIN
+$isSuperAdmin = (isset($_SESSION['cargo']) && $_SESSION['cargo'] === 'super_admin');
+
+$listaCursos = [];
+if ($isSuperAdmin) {
+    $resCursosList = mysqli_query($conn, "SELECT id, nome FROM cursos ORDER BY nome ASC");
+    while ($c = mysqli_fetch_assoc($resCursosList)) $listaCursos[] = $c;
+}
+
+// Busca informações do curso atual para o título
 $sqlCurso = "SELECT nome FROM cursos WHERE id = ?";
 $stmtCurso = mysqli_prepare($conn, $sqlCurso);
 mysqli_stmt_bind_param($stmtCurso, "i", $cursoId);
@@ -99,9 +108,17 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
                         <option value="all">Todos os status</option>
                         <option value="Risk"> Risco Ativo</option>
                         <option value="Recurrent"> Reincidente</option>
-                        <option value="History"> Histórico</option>
                         <option value="Safe"> Regular</option>
                     </select>
+
+                    <?php if ($isSuperAdmin): ?>
+                        <select class="filter-select" id="courseFilter" onchange="fetchStudents()">
+                            <option value="todos">Todos os Cursos</option>
+                            <?php foreach ($listaCursos as $c): ?>
+                                <option value="<?= $c['id']; ?>"><?= htmlspecialchars($c['nome']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
 
                 <div class="student-list" id="studentList">

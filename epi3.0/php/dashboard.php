@@ -147,6 +147,13 @@ if ($isSuperAdmin) {
     $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQLI_ASSOC);
 }
 
+// 1.5 BUSCAR TODOS OS CURSOS PARA O SELETOR (Se for Super Admin)
+$cursosParaFiltro = [];
+if ($isSuperAdmin) {
+    $resCursosList = mysqli_query($conn, "SELECT id, nome FROM cursos ORDER BY nome ASC");
+    $cursosParaFiltro = mysqli_fetch_all($resCursosList, MYSQLI_ASSOC);
+}
+
 // CÁLCULO DAS PORCENTAGENS E MÉDIA
 if ($totalAlunos === 0) {
     $mediaTurma = 100;
@@ -158,7 +165,6 @@ $mediaTurma = max(0, min(100, $mediaTurma));
 $percDia = ($infraOntem > 0) ? round((($infraDia - $infraOntem) / $infraOntem) * 100, 1) : ($infraDia > 0 ? 100 : 0);
 $percSemana = ($infraSemanaAnterior > 0) ? round((($infraSemana - $infraSemanaAnterior) / $infraSemanaAnterior) * 100, 1) : ($infraSemana > 0 ? 100 : 0);
 $percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $infraMesAnterior) * 100, 1) : ($infraMes > 0 ? 100 : 0);
-?>
 ?>
 
 <!DOCTYPE html>
@@ -212,6 +218,15 @@ $percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $i
                     </svg>
                     <span class="notif-badge" id="notifBadge">0</span>
                 </a>
+
+                <?php if ($isSuperAdmin): ?>
+                    <button class="btn-header-action" onclick="openCourseModal()" title="Filtrar por Curso" id="btnFilterCourse">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+                        </svg>
+                        <span id="activeCourseName" style="font-size: 10px; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: var(--primary); font-weight: bold;">Todos</span>
+                    </button>
+                <?php endif; ?>
 
                 <button class="btn-export" onclick="exportData()" style="margin-left: 10px;">
                     <svg viewBox="0 0 24 24">
@@ -545,6 +560,35 @@ $percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $i
     </div>
 
     <div id="notification-container"></div>
+
+    <?php if ($isSuperAdmin): ?>
+        <!-- Modal de Seleção de Curso -->
+        <div id="courseSelectionModal" class="modal-ranking-overlay" onclick="closeCourseModal()">
+            <div class="modal-ranking-square" style="max-width: 400px; height: auto; max-height: 80vh;" onclick="event.stopPropagation()">
+                <div class="modal-ranking-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2>Selecionar Curso</h2>
+                            <p style="margin: 0; font-size: 0.8rem; color: #64748b;">Escolha o curso para filtrar os dados</p>
+                        </div>
+                        <button onclick="closeCourseModal()" style="background:none; border:none; cursor:pointer; font-size:20px; color:#94a3b8;">&times;</button>
+                    </div>
+                </div>
+                <div class="modal-ranking-body" style="padding: 15px;">
+                    <div style="display: grid; gap: 8px;">
+                        <button class="btn-modal-action" onclick="selectCourse('all', 'Todos')" style="width: 100%; text-align: left; background: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0; padding: 12px; font-weight: 600;">
+                            🌎 Todos os Cursos (Global)
+                        </button>
+                        <?php foreach ($cursosParaFiltro as $curso): ?>
+                            <button class="btn-modal-action" onclick="selectCourse(<?php echo $curso['id']; ?>, '<?php echo addslashes($curso['nome']); ?>')" style="width: 100%; text-align: left; background: white; color: #334155; border: 1px solid #f1f5f9; padding: 12px;">
+                                🎓 <?php echo htmlspecialchars($curso['nome']); ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>

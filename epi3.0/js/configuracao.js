@@ -80,6 +80,9 @@ function changeChartColor(color) {
 function toggleSound(checkbox) {
     localStorage.setItem('soundEnabled', checkbox.checked);
 }
+function toggleNavSound(checkbox) {
+    localStorage.setItem('navSoundEnabled', checkbox.checked);
+}
 
 // Inicializa os checkboxes com os valores do localStorage
 document.addEventListener('DOMContentLoaded', () => {

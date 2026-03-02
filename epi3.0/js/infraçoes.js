@@ -84,7 +84,7 @@ function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorr
     // 2. Configura o botão de assinar
     if (btnAssinar) {
         if (isAssinada) {
-            btnAssinar.innerText = "ASSINADO";
+            btnAssinar.innerText = "CONFIRMADO";
             btnAssinar.disabled = true;
             btnAssinar.style.background = "#ecfdf5";
             btnAssinar.style.color = "#059669";
@@ -92,7 +92,7 @@ function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorr
             btnAssinar.style.cursor = "default";
             btnAssinar.onclick = null;
         } else {
-            btnAssinar.innerText = "Assinar Ocorrência";
+            btnAssinar.innerText = "Confirmar Ocorrência";
             btnAssinar.disabled = false;
             btnAssinar.style = ""; // Reseta estilos
             btnAssinar.onclick = function () {

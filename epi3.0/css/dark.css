@@ -115,9 +115,8 @@
 
 
 [data-theme="dark"] .btn-export {
-    color: var(--text-main);
-    background-color: var(--bg-card);
-    border-color: var(--border);
+    color: #111827;
+    border-color: #111827 2px solid;
 }
 
 [data-theme="dark"] .btn-export:hover {
@@ -125,7 +124,7 @@
 }
 
 [data-theme="dark"] .user-name {
-    color: var(--text-main);
+    color: #111827;
 }
 
 [data-theme="dark"] .user-role {
@@ -171,8 +170,7 @@
 }
 
 [data-theme="dark"] .ranking-row:hover {
-    background-color: var(--border) !important;
-    color: var(--text-main) !important;
+    color: var(--bg-body);
 }
 
 [data-theme="dark"] .badge-count {
@@ -220,8 +218,8 @@
 }
 
 [data-theme="dark"] .chat-panel {
-    color: var(--text-main);
-    background-color: var(--bg-card);
+    color: #000000;
+    background-color: #ffffff;
 }
 
 [data-theme="dark"] .meet-footer {

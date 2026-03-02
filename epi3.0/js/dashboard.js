@@ -9,6 +9,7 @@ let currCalMonth = new Date().getMonth();   // Mês visualizado no Modal de Esco
 let allOccurrences = []; // Dados do BD
 let mainChartInstance = null;
 let doughnutChartInstance = null;
+let selectedCourseId = 'all'; // Novo: Filtro de curso para Super Admin
 
 // Arrays auxiliares
 const monthsFull = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -59,7 +60,7 @@ function loadCalendarData() {
     const month = selectedDate.getMonth() + 1;
     const year = selectedDate.getFullYear();
 
-    fetch(`../apis/api.php?action=calendar&month=${month}&year=${year}`)
+    fetch(`../apis/api.php?action=calendar&month=${month}&year=${year}&course_id=${selectedCourseId}`)
         .then(res => res.json())
         .then(data => {
             allOccurrences = Array.isArray(data) ? data : [];
@@ -520,9 +521,28 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
 }
 
 function loadCharts() {
-    fetch('../apis/api.php?action=charts')
+    fetch(`../apis/api.php?action=charts&course_id=${selectedCourseId}`)
         .then(res => res.json())
         .then(response => {
+            // ... (keep previous session handling)
+
+            // NOVO: Atualiza KPIs com o resumo do API
+            if (response.summary) {
+                const elDia = document.getElementById('kpiDia');
+                const elSemana = document.getElementById('kpiSemana');
+                const elMes = document.getElementById('kpiMes');
+                const elMedia = document.getElementById('kpiMedia');
+
+                if (elDia) elDia.innerText = response.summary.today;
+                if (elSemana) elSemana.innerText = response.summary.week;
+                if (elMes) elMes.innerText = response.summary.month;
+
+                if (elMedia && response.summary.total_students > 0) {
+                    const conformidade = Math.round(((response.summary.total_students - response.summary.today) / response.summary.total_students) * 100);
+                    elMedia.innerText = `${Math.max(0, conformidade)}%`;
+                    updateConformityStatus(conformidade);
+                }
+            }
             if (response.status === 'session_expired' || response.status === 'not_logged') {
                 window.location.href = 'index.php';
                 return;
@@ -797,6 +817,43 @@ const config = { childList: true, characterData: true, subtree: true };
 if (document.getElementById('kpiDia')) observer.observe(document.getElementById('kpiDia'), config);
 if (document.getElementById('kpiSemana')) observer.observe(document.getElementById('kpiSemana'), config);
 if (document.getElementById('kpiMes')) observer.observe(document.getElementById('kpiMes'), config);
+
+// =============================================================
+// NOVO: LÓGICA DE SELEÇÃO DE CURSO (SUPER ADMIN)
+// =============================================================
+
+function openCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.add('open');
+}
+
+function closeCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function selectCourse(id, name) {
+    selectedCourseId = id;
+
+    // Atualiza o texto no botão do header
+    const label = document.getElementById('activeCourseName');
+    if (label) {
+        label.innerText = name.length > 10 ? name.substring(0, 10) + '...' : name;
+        label.title = name;
+    }
+
+    // Fecha o modal
+    closeCourseModal();
+
+    // Recarrega os dados e os gráficos
+    loadCalendarData();
+    loadCharts();
+
+    // Feedback visual
+    if (typeof createToast === 'function') {
+        createToast('Filtro Aplicado', `Visualizando: ${name}`, 'info');
+    }
+}
 
 
 function updatePercentagesDinamicamente() {
