@@ -44,7 +44,10 @@
         transitionSound.volume = 0.2;
 
         if (mainContent) {
-            transitionSound.play().catch(e => console.warn("Erro ao tocar som de transição:", e));
+            const navSoundEnabled = localStorage.getItem('navSoundEnabled') !== 'false';
+            if (navSoundEnabled) {
+                transitionSound.play().catch(e => console.warn("Erro ao tocar som de transição:", e));
+            }
 
             // Aplica estado de saída
             mainContent.classList.remove('page-enter-active');
@@ -57,6 +60,7 @@
         } else {
             window.location.href = url;
         }
+
     }
 
     // Função Global Exportada
