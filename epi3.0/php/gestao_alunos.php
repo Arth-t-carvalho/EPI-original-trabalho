@@ -121,7 +121,7 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
                 <h2 id="modalLabel">Novo Aluno</h2>
                 <button class="btn-close-modal" onclick="closeModal('modalAluno')">&times;</button>
             </div>
-            <form id="formAluno">
+            <form id="formAluno" enctype="multipart/form-data">
                 <input type="hidden" name="id" id="alunoId">
                 <div class="form-group">
                     <label>Nome Completo</label>
@@ -135,6 +135,10 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
                             <option value="<?= $curso['id']; ?>"><?= htmlspecialchars($curso['nome']); ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Foto do Aluno (Opcional)</label>
+                    <input type="file" name="foto" id="alunoFoto" class="form-input" accept="image/*">
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="button" class="btn-gestao" onclick="closeModal('modalAluno')" style="flex:1; background: #eee; color: #333;">Cancelar</button>

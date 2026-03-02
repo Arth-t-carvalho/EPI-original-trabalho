@@ -38,13 +38,18 @@
         });
     }
 
+    //eu alterei essa função aqui - Pirra
     function performTransition(url) {
         const mainContent = document.querySelector('.main-content');
+        const navSoundEnabled = localStorage.getItem('navSoundEnabled') !== 'false';
         const transitionSound = new Audio('../som/troca_pagina.mp3');
         transitionSound.volume = 0.2;
 
         if (mainContent) {
-            transitionSound.play().catch(e => console.warn("Erro ao tocar som de transição:", e));
+
+            if (navSoundEnabled) {
+                transitionSound.play().catch(e => console.warn("Erro ao tocar som de transição:", e));
+            }
 
             // Aplica estado de saída
             mainContent.classList.remove('page-enter-active');

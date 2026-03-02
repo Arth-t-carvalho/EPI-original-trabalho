@@ -15,6 +15,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1); // Temporário para debug
 
 $cursoId = (isset($_SESSION['usuario_id_curso']) && (int)$_SESSION['usuario_id_curso'] > 0) ? (int)$_SESSION['usuario_id_curso'] : 1;
+$cargo = strtolower($_SESSION['cargo'] ?? '');
+$isSuperAdmin = ($cargo === 'super_admin');
 
 try {
     $action = $_GET['action'] ?? '';
@@ -40,30 +42,42 @@ try {
         // A) Barras - Capacete (ID 2)
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE o.epi_id = 2 AND YEAR(o.data_hora) = ? AND a.curso_id = ? 
-                GROUP BY mes";
+                WHERE o.epi_id = 2 AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+            " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "i", $year);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $capaceteArr = formatMonthArray(mysqli_stmt_get_result($stmt));
 
         // B) Barras - Óculos (ID 1)
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE o.epi_id = 1 AND YEAR(o.data_hora) = ? AND a.curso_id = ? 
-                GROUP BY mes";
+                WHERE o.epi_id = 1 AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+            " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "i", $year);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $oculosArr = formatMonthArray(mysqli_stmt_get_result($stmt));
 
         // C) Total Geral
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE YEAR(o.data_hora) = ? AND a.curso_id = ? 
-                GROUP BY mes";
+                WHERE YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+            " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "i", $year);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $totalArr = formatMonthArray(mysqli_stmt_get_result($stmt));
 
@@ -71,10 +85,14 @@ try {
         $sql = "SELECT e.nome, COUNT(*) as qtd FROM ocorrencias o 
                 JOIN epis e ON e.id = o.epi_id 
                 JOIN alunos a ON a.id = o.aluno_id
-                WHERE YEAR(o.data_hora) = ? AND a.curso_id = ? 
-                GROUP BY e.nome";
+                WHERE YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+            " GROUP BY e.nome";
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "i", $year);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $resDoughnut = mysqli_stmt_get_result($stmt);
 
@@ -98,18 +116,67 @@ try {
                 FROM ocorrencias o
                 JOIN alunos a ON o.aluno_id = a.id
                 LEFT JOIN epis e ON e.id = o.epi_id
-                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? AND a.curso_id = ?
-                ORDER BY o.data_hora ASC";
+                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+            " ORDER BY o.data_hora ASC";
 
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "iii", $month, $year, $cursoId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "ii", $month, $year);
+        } else {
+            mysqli_stmt_bind_param($stmt, "iii", $month, $year, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         echo json_encode(mysqli_fetch_all($res, MYSQLI_ASSOC));
         exit;
     }
 
-    // 3. MODAL (DETALHES)
+    // 3. LISTAGEM COMPLETA DE OCORRÊNCIAS (Para Super Admin / Gestão)
+    if ($action === 'list_all_ocorrencias') {
+        $search = $_GET['search'] ?? '';
+        $filtroCurso = $_GET['curso_id'] ?? '';
+
+        $sql = "SELECT o.id, o.data_hora, a.nome AS aluno_nome, c.nome AS curso_nome, e.nome AS epi_nome
+                FROM ocorrencias o
+                JOIN alunos a ON o.aluno_id = a.id
+                LEFT JOIN cursos c ON a.curso_id = c.id
+                LEFT JOIN epis e ON o.epi_id = e.id
+                LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
+                WHERE o.tipo = 0 AND o.oculto = 0 AND ac.id IS NULL"; // Apenas Não Conformidades PENDENTES de ação humana
+
+        $params = [];
+        $types = "";
+
+        if (!$isSuperAdmin) {
+            $sql .= " AND a.curso_id = ? ";
+            $params[] = $cursoId;
+            $types .= "i";
+        } elseif (!empty($filtroCurso) && $filtroCurso !== 'todos') {
+            $sql .= " AND a.curso_id = ? ";
+            $params[] = (int)$filtroCurso;
+            $types .= "i";
+        }
+
+        if (!empty($search)) {
+            $sql .= " AND a.nome LIKE ? ";
+            $params[] = "%$search%";
+            $types .= "s";
+        }
+
+        $sql .= " ORDER BY o.data_hora DESC LIMIT 100";
+
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!empty($params)) {
+            mysqli_stmt_bind_param($stmt, $types, ...$params);
+        }
+
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        echo json_encode(mysqli_fetch_all($res, MYSQLI_ASSOC));
+        exit;
+    }
+
+    // 4. MODAL (DETALHES)
     if ($action === 'modal_details') {
         $mesSQL = ($month == 0) ? 1 : $month;
         $epiFilter = $_GET['epi'] ?? '';
@@ -122,7 +189,7 @@ try {
                 LEFT JOIN cursos c ON c.id = a.curso_id
                 LEFT JOIN epis e ON e.id = o.epi_id
                 LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
-                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? AND a.curso_id = ? ";
+                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ");
 
         if (!empty($epiFilter)) {
             $sql .= " AND e.nome = ? ";
@@ -131,12 +198,21 @@ try {
         $sql .= " GROUP BY o.id ORDER BY o.data_hora DESC";
 
         $stmt = mysqli_prepare($conn, $sql);
-        if (!empty($epiFilter)) {
-            mysqli_stmt_bind_param($stmt, "iiis", $mesSQL, $year, $cursoId, $epiFilter);
+
+        if ($isSuperAdmin) {
+            if (!empty($epiFilter)) {
+                mysqli_stmt_bind_param($stmt, "iis", $mesSQL, $year, $epiFilter);
+            } else {
+                mysqli_stmt_bind_param($stmt, "ii", $mesSQL, $year);
+            }
+        } else {
+            if (!empty($epiFilter)) {
+                mysqli_stmt_bind_param($stmt, "iiis", $mesSQL, $year, $cursoId, $epiFilter);
+            } else {
+                mysqli_stmt_bind_param($stmt, "iii", $mesSQL, $year, $cursoId);
+            }
         }
-        else {
-            mysqli_stmt_bind_param($stmt, "iii", $mesSQL, $year, $cursoId);
-        }
+
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         echo json_encode(mysqli_fetch_all($res, MYSQLI_ASSOC));
@@ -152,10 +228,14 @@ try {
         $sqlCount = "SELECT COUNT(o.id) as total, MAX(o.id) as max_id 
                      FROM ocorrencias o 
                      JOIN alunos a ON a.id = o.aluno_id 
-                     WHERE a.curso_id = ? AND o.id > ?";
+                     WHERE o.id > ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ");
 
         $stmt = mysqli_prepare($conn, $sqlCount);
-        mysqli_stmt_bind_param($stmt, "ii", $cursoId, $seenId);
+        if ($isSuperAdmin) {
+            mysqli_stmt_bind_param($stmt, "i", $seenId);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $seenId, $cursoId);
+        }
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         $row = mysqli_fetch_assoc($res);
@@ -166,10 +246,14 @@ try {
                            FROM ocorrencias o 
                            JOIN alunos a ON a.id = o.aluno_id 
                            JOIN epis e ON e.id = o.epi_id 
-                           WHERE a.curso_id = ? AND o.id > ? 
-                           ORDER BY o.id DESC LIMIT 3";
+                           WHERE o.id > ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+                " ORDER BY o.id DESC LIMIT 3";
             $stmtD = mysqli_prepare($conn, $sqlDetails);
-            mysqli_stmt_bind_param($stmtD, "ii", $cursoId, $seenId);
+            if ($isSuperAdmin) {
+                mysqli_stmt_bind_param($stmtD, "i", $seenId);
+            } else {
+                mysqli_stmt_bind_param($stmtD, "ii", $seenId, $cursoId);
+            }
             mysqli_stmt_execute($stmtD);
             $resD = mysqli_stmt_get_result($stmtD);
             while ($d = mysqli_fetch_assoc($resD)) {
@@ -182,6 +266,63 @@ try {
             'max_id' => (int)($row['max_id'] ?? 0),
             'new_items' => $details
         ]);
+        exit;
+    }
+
+    // 5. SALVAR OCORRÊNCIA MANUAL (Formulário)
+    if ($action === 'save_occurrence') {
+        $alunoId = (int)($_POST['aluno_id'] ?? 0);
+        $epiId = (int)($_POST['epi_id'] ?? 1); // Padrão 1 se não vier
+        $tipoRegistro = $_POST['tipo'] ?? 'obs';
+        $observacao = $_POST['observacao'] ?? '';
+        $usuarioId = $_SESSION['usuario_id'] ?? 0;
+
+        if ($alunoId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Aluno não selecionado.']);
+            exit;
+        }
+
+        // 1. Cria a ocorrência básica (tipo=0 por padrão para não conformidade, ou o sistema decide)
+        // Aqui assumimos que se o professor está abrindo, ele está registrando uma não-conformidade (tipo 0)
+        $sql = "INSERT INTO ocorrencias (aluno_id, epi_id, tipo, data_hora) VALUES (?, ?, 0, NOW())";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "ii", $alunoId, $epiId);
+
+        if (mysqli_stmt_execute($stmt)) {
+            $ocorrenciaId = mysqli_insert_id($conn);
+
+            // 2. Registra a ação tomada (Advertência/Observação)
+            $sqlAcao = "INSERT INTO acoes_ocorrencia (ocorrencia_id, tipo, observacao, usuario_id, data_hora) 
+                        VALUES (?, ?, ?, ?, NOW())";
+            $stmtAcao = mysqli_prepare($conn, $sqlAcao);
+            mysqli_stmt_bind_param($stmtAcao, "issi", $ocorrenciaId, $tipoRegistro, $observacao, $usuarioId);
+            mysqli_stmt_execute($stmtAcao);
+
+            // 3. Processa Evidências (Fotos)
+            if (isset($_FILES['fotos'])) {
+                $uploadDir = __DIR__ . '/../uploads/evidencias/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+                foreach ($_FILES['fotos']['tmp_name'] as $key => $tmpName) {
+                    if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                        $ext = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
+                        $fileName = "evidência_" . $ocorrenciaId . "_" . time() . "_" . $key . "." . $ext;
+                        
+                        if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                            $caminho = 'uploads/evidencias/' . $fileName;
+                            $sqlEv = "INSERT INTO evidencias (ocorrencia_id, imagem) VALUES (?, ?)";
+                            $stmtEv = mysqli_prepare($conn, $sqlEv);
+                            mysqli_stmt_bind_param($stmtEv, "is", $ocorrenciaId, $caminho);
+                            mysqli_stmt_execute($stmtEv);
+                        }
+                    }
+                }
+            }
+
+            echo json_encode(['success' => true, 'id' => $ocorrenciaId]);
+        } else {
+            echo json_encode(['success' => false, 'error' => mysqli_error($conn)]);
+        }
         exit;
     }
 
@@ -205,8 +346,7 @@ try {
 
         if (mysqli_stmt_execute($stmt)) {
             echo json_encode(['success' => true]);
-        }
-        else {
+        } else {
             echo json_encode(['success' => false, 'error' => 'Erro ao salvar: ' . mysqli_error($conn)]);
         }
         exit;
@@ -282,9 +422,7 @@ try {
         echo json_encode($resultado);
         exit;
     }
-}
-catch (Exception $e) {
+} catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
-?>

@@ -13,36 +13,34 @@ const modal = document.getElementById('detailModal');
 async function fetchStudents() {
     listContainer.innerHTML = '<div style="padding:20px; text-align:center;">🔄 Conectando ao sistema...</div>';
 
-    // CAMINHO RELATIVO AUTOMÁTICO
-    const url = '../apis/controle.api.php';
+    // Parâmetros de Filtro
+    let url = '../apis/controle.api.php?';
+
+    const courseFilter = document.getElementById('courseFilter');
+    if (courseFilter && courseFilter.value !== 'todos') {
+        url += `curso_id=${courseFilter.value}&`;
+    }
+
+    const statusFilterEl = document.getElementById('statusFilter');
+    if (statusFilterEl && statusFilterEl.value !== 'all') {
+        url += `status_filter=${statusFilterEl.value}&`;
+    }
 
     try {
         const response = await fetch(url);
+        const data = await response.json();
 
-        if (response.status === 404) {
-            throw new Error(`Arquivo API não encontrado.`);
+        if (data.error) {
+            listContainer.innerHTML = `<div style="color:red; padding:20px; text-align:center">Erro: ${data.error}</div>`;
+            return;
         }
 
-        const text = await response.text();
-        try {
-            const data = JSON.parse(text);
-
-            if (data.error) {
-                listContainer.innerHTML = `<div style="color:red; padding:20px; text-align:center">Erro do Banco: ${data.error}</div>`;
-                return;
-            }
-
-            students = data;
-            renderList();
-
-        } catch (jsonError) {
-            console.error("Erro ao ler JSON:", text);
-            listContainer.innerHTML = `<div style="color:red; padding:20px;">Erro no PHP (veja o console F12).</div>`;
-        }
+        students = data;
+        renderList();
 
     } catch (error) {
         console.error('Erro Fatal:', error);
-        listContainer.innerHTML = `<div style="color:red; padding:20px; text-align:center;">❌ ${error.message}</div>`;
+        listContainer.innerHTML = `<div style="color:red; padding:20px; text-align:center;">❌ Falha na conexão com o servidor.</div>`;
     }
 }
 
@@ -50,34 +48,16 @@ async function fetchStudents() {
 // 3. LÓGICA DE RENDERIZAÇÃO DA LISTA
 // ==========================================
 
-function getStudentState(student) {
-    const hasRisk = student.missing && student.missing.length > 0;
-    const hasHistory = student.history;
-
-    if (hasRisk) return 'Risk';
-    if (hasHistory) return 'History';
-    return 'Safe';
-}
-
-function renderList(filterText = '', filterStatus = 'all') {
+function renderList(filterText = '') {
     listContainer.style.display = "grid";
     listContainer.style.gridTemplateColumns = "repeat(auto-fill, minmax(200px, 240px))";
     listContainer.style.gap = "12px";
     listContainer.style.justifyContent = "start";
     listContainer.innerHTML = '';
 
-    const filtered = students.filter(s => {
-        const state = getStudentState(s);
-        const matchesText = s.name.toLowerCase().includes(filterText.toLowerCase());
-
-        let matchesStatus = false;
-        if (filterStatus === 'all') matchesStatus = true;
-        else if (filterStatus === 'Risk' && state === 'Risk') matchesStatus = true;
-        else if (filterStatus === 'History' && state === 'History') matchesStatus = true;
-        else if (filterStatus === 'Safe' && state === 'Safe') matchesStatus = true;
-
-        return matchesText && matchesStatus;
-    });
+    const filtered = students.filter(s =>
+        s.name.toLowerCase().includes(filterText.toLowerCase())
+    );
 
     if (filtered.length === 0) {
         listContainer.style.display = "flex";
@@ -90,8 +70,9 @@ function renderList(filterText = '', filterStatus = 'all') {
     }
 
     filtered.forEach((student, index) => {
-        const state = getStudentState(student);
+        const state = student.status; // Veio pronto do backend
         const initials = student.name.substring(0, 2).toUpperCase();
+        const historyCount = student.history_count || 0;
 
         let borderColor = 'transparent';
         let badgeBg = '#F3F4F6';
@@ -103,75 +84,41 @@ function renderList(filterText = '', filterStatus = 'all') {
             badgeBg = '#FEF2F2';
             badgeColor = '#EF4444';
             icon = '⚠️';
-        } else if (state === 'History') {
-            borderColor = '#F59E0B';
-            badgeBg = '#FFFBEB';
-            badgeColor = '#D97706';
-            icon = '🔔';
+        } else if (state === 'Recurrent') {
+            borderColor = '#7C3AED';
+            badgeBg = '#F5F3FF';
+            badgeColor = '#7C3AED';
+            icon = '🔄';
         }
 
         const card = document.createElement('div');
-
         card.style.cssText = `
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            border: 1px solid #E2E8F0;
-            border-left: 4px solid ${state === 'Safe' ? '#10B981' : borderColor};
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
+            background: white; border-radius: 12px; padding: 12px; cursor: pointer;
+            border: 1px solid #E2E8F0; border-left: 4px solid ${state === 'Safe' ? '#10B981' : borderColor};
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 12px;
+            transition: all 0.2s ease; position: relative; overflow: hidden;
             animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            opacity: 0;
-            transform: scale(0.9);
-            animation-delay: ${index * 0.05}s;
+            opacity: 0; transform: scale(0.9); animation-delay: ${index * 0.05}s;
         `;
 
-        card.onmouseenter = () => {
-            card.style.transform = "translateY(-2px) scale(1.02)";
-            card.style.boxShadow = "0 8px 16px -4px rgba(0,0,0,0.1)";
-        };
-        card.onmouseleave = () => {
-            card.style.transform = "translateY(0) scale(1)";
-            card.style.boxShadow = "0 2px 4px rgba(0,0,0,0.02)";
-        };
-
+        card.onmouseenter = () => card.style.transform = "translateY(-2px) scale(1.02)";
+        card.onmouseleave = () => card.style.transform = "translateY(0) scale(1)";
         card.onclick = () => openModal(student);
 
         card.innerHTML = `
-            <div style="
-                width: 38px; height: 38px; 
-                background: #F8FAFC; 
-                border-radius: 50%; 
-                display: flex; align-items: center; justify-content: center;
-                font-size: 13px; font-weight: 700; color: #475569;
-                border: 1px solid #E2E8F0; flex-shrink: 0;">
+            <div style="width: 38px; height: 38px; background: #F8FAFC; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #475569; border: 1px solid #E2E8F0; flex-shrink: 0;">
                 ${initials}
             </div>
-            
             <div style="flex: 1; min-width: 0;">
                 <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${student.name}
                 </h3>
-                <p style="margin: 2px 0 0 0; font-size: 11px; color: #94A3B8;">
-                    ${student.course}
+                <p style="margin: 2px 0 0 0; font-size: 10px; color: #94A3B8;">
+                    ${student.course} • <b>${student.infractions_today} hoje</b> • ${student.history_count} total
                 </p>
             </div>
-
-            ${state !== 'Safe' ? `
-            <div style="
-                font-size: 10px; font-weight: 700; 
-                color: ${badgeColor}; background: ${badgeBg};
-                padding: 4px 8px; border-radius: 6px;">
-                ${icon}
-            </div>` : ''}
+            ${state !== 'Safe' ? `<div style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; padding: 4px 8px; border-radius: 6px;">${icon}</div>` : ''}
         `;
-
         listContainer.appendChild(card);
     });
 
@@ -200,7 +147,7 @@ function openModal(student) {
     }
 
     const missingEpis = Array.isArray(student.missing) ? student.missing : [];
-    const state = getStudentState(student);
+    const state = student.status; // Veio pronto do backend
 
     const nomeEl = document.getElementById('modalName');
     const cursoEl = document.getElementById('modalCourse');
@@ -254,7 +201,7 @@ function openModal(student) {
         }
     }
 
-    // Mostra o modal - usando ambas as classes para garantir compatibilidade com o CSS
+    // Mostra o modal
     modalElement.style.display = 'flex';
     modalElement.classList.add('active');
     modalElement.classList.add('open');

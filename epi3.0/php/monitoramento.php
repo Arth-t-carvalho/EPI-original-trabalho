@@ -3,6 +3,12 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/auth.php';
 
+// Super Admin não tem acesso ao monitoramento (apenas visão geral de ocorrências)
+if (isset($_SESSION['cargo']) && $_SESSION['cargo'] === 'super_admin') {
+    header("Location: dashboard.php");
+    exit;
+}
+
 // DADOS DO USUÁRIO
 $sqlUser = "SELECT nome, cargo FROM usuarios WHERE id = ? LIMIT 1";
 $stmtUser = mysqli_prepare($conn, $sqlUser);

@@ -5,17 +5,48 @@ require_once __DIR__ . '/../config/auth.php';
 // ==========================================
 // 1. LÓGICA DE FILTROS (BACK-END)
 // ==========================================
+$isSuperAdmin = (isset($_SESSION['cargo']) && $_SESSION['cargo'] === 'super_admin');
 $cursoId = (isset($_SESSION['usuario_id_curso']) && (int)$_SESSION['usuario_id_curso'] > 0) ? (int)$_SESSION['usuario_id_curso'] : 1;
+
+$globalView = false;
+$filtroCurso = $_GET['curso_id'] ?? '';
+
+if ($isSuperAdmin) {
+    if ($filtroCurso === 'todos' || empty($filtroCurso)) {
+        $globalView = true;
+    } else {
+        $cursoId = (int)$filtroCurso;
+    }
+}
+
 $filtroData = $_GET['periodo'] ?? ($_GET['filtro'] ?? 'hoje');
 $filtroEpi = isset($_GET['epi']) ? $_GET['epi'] : '';
+$filtroAluno = $_GET['aluno_id'] ?? '';
+$filtroDataEspecífica = $_GET['data_especifica'] ?? '';
 
 try {
-    // 1.1 Busca lista de EPIs para o select (MySQLi)
+    // 1.1 Busca lista de Cursos e EPIs (MySQLi)
+    $listaCursos = [];
+    if ($isSuperAdmin) {
+        $resCursos = $conn->query("SELECT id, nome FROM cursos ORDER BY nome ASC");
+        while ($c = $resCursos->fetch_assoc()) $listaCursos[] = $c;
+    }
+
     $resultEpis = $conn->query("SELECT id, nome FROM epis ORDER BY nome ASC");
     $listaEpis = [];
     while ($rowEpi = $resultEpis->fetch_assoc()) {
         $listaEpis[] = $rowEpi;
     }
+
+    // Busca lista de Alunos (Filtrado por curso se não for global)
+    $sqlAlunos = "SELECT id, nome FROM alunos ";
+    if (!$globalView) {
+        $sqlAlunos .= " WHERE curso_id = $cursoId ";
+    }
+    $sqlAlunos .= " ORDER BY nome ASC";
+    $resAlunos = $conn->query($sqlAlunos);
+    $listaAlunos = [];
+    while ($a = $resAlunos->fetch_assoc()) $listaAlunos[] = $a;
 
     // 1.2 Montagem da Query Principal (Filtrada por Curso do Usuário)
     $sql = "
@@ -34,18 +65,26 @@ try {
         JOIN epis e ON e.id = o.epi_id
         LEFT JOIN evidencias ev ON ev.ocorrencia_id = o.id 
         LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
-        WHERE a.curso_id = ? AND o.oculto = 0
+        WHERE o.oculto = 0 
     ";
 
+    if (!$globalView) {
+        $sql .= " AND a.curso_id = ? ";
+    }
+
     // Filtros de Data
-    if ($filtroData == 'hoje' || $filtroData == 'dia') {
-        $sql .= " AND DATE(o.data_hora) = CURDATE()";
-    }
-    elseif ($filtroData == '7dias' || $filtroData == 'semana') {
-        $sql .= " AND o.data_hora >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-    }
-    elseif ($filtroData == '30dias' || $filtroData == 'mes') {
-        $sql .= " AND o.data_hora >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+    if (!empty($filtroDataEspecífica)) {
+        $sql .= " AND DATE(o.data_hora) = ?";
+    } else {
+        if ($filtroData == 'hoje' || $filtroData == 'dia') {
+            $sql .= " AND DATE(o.data_hora) = CURDATE()";
+        }
+        elseif ($filtroData == '7dias' || $filtroData == 'semana') {
+            $sql .= " AND o.data_hora >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+        }
+        elseif ($filtroData == '30dias' || $filtroData == 'mes') {
+            $sql .= " AND o.data_hora >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        }
     }
 
     // Filtro de EPI
@@ -53,16 +92,41 @@ try {
         $sql .= " AND o.epi_id = ?";
     }
 
+    // Filtro de Aluno
+    if (!empty($filtroAluno)) {
+        $sql .= " AND o.aluno_id = ?";
+    }
+
     $sql .= " GROUP BY o.id ORDER BY o.data_hora DESC LIMIT 100";
 
-    // 1.3 Execução com Prepared Statement (MySQLi)
+    // 1.3 Execução com Prepared Statement
     $stmt = $conn->prepare($sql);
 
-    if (!empty($filtroEpi)) {
-        $stmt->bind_param("ii", $cursoId, $filtroEpi);
+    $params = [];
+    $types = "";
+
+    if (!$globalView) {
+        $params[] = $cursoId;
+        $types .= "i";
     }
-    else {
-        $stmt->bind_param("i", $cursoId);
+    
+    if (!empty($filtroDataEspecífica)) {
+        $params[] = $filtroDataEspecífica;
+        $types .= "s";
+    }
+
+    if (!empty($filtroEpi)) {
+        $params[] = $filtroEpi;
+        $types .= "i";
+    }
+
+    if (!empty($filtroAluno)) {
+        $params[] = $filtroAluno;
+        $types .= "i";
+    }
+
+    if (!empty($types)) {
+        $stmt->bind_param($types, ...$params);
     }
 
     $stmt->execute();
@@ -111,12 +175,28 @@ catch (Exception $e) {
 
                 <form method="GET" class="header-controls">
                     <div class="filters-row">
+                        <?php if ($isSuperAdmin): ?>
+                            <select name="curso_id" class="filter-select" onchange="this.form.submit()">
+                                <option value="todos" <?= $globalView ? 'selected' : ''; ?>>Todos os Cursos</option>
+                                <?php foreach ($listaCursos as $c): ?>
+                                    <option value="<?= $c['id']; ?>" <?= ($filtroCurso == $c['id']) ? 'selected' : ''; ?>>
+                                        Curso: <?= htmlspecialchars($c['nome']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php endif; ?>
+
                         <select name="periodo" class="filter-select" onchange="this.form.submit()">
                             <option value="hoje" <?php echo($filtroData == 'hoje' || $filtroData == 'dia') ? 'selected' : ''; ?>>Hoje</option>
                             <option value="7dias" <?php echo($filtroData == '7dias' || $filtroData == 'semana') ? 'selected' : ''; ?>>Últimos 7 dias</option>
                             <option value="30dias" <?php echo($filtroData == '30dias' || $filtroData == 'mes') ? 'selected' : ''; ?>>Últimos 30 dias</option>
                             <option value="todos" <?php echo $filtroData == 'todos' ? 'selected' : ''; ?>>Tudo</option>
+                            <option value="custom" <?php echo !empty($filtroDataEspecífica) ? 'selected' : ''; ?>>Data Específica...</option>
                         </select>
+
+                        <?php if (!empty($filtroDataEspecífica) || (isset($_GET['periodo']) && $_GET['periodo'] == 'custom')): ?>
+                            <input type="date" name="data_especifica" class="filter-select" value="<?= $filtroDataEspecífica ?>" onchange="this.form.submit()">
+                        <?php endif; ?>
 
                         <select name="epi" class="filter-select" onchange="this.form.submit()">
                             <option value="">Todos os EPIs</option>
@@ -167,7 +247,7 @@ else: ?>
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <span class="violation-tag"><?php echo $epiSafe; ?></span>
                                     <?php if ($item['is_assinada']): ?>
-                                        <span class="status-assinada">Assinado</span>
+                                        <span class="status-assinada">Confirmado</span>
                                     <?php endif; ?>
                                 </div>
                                 <span class="infrator-name"><?php echo $nomeSafe; ?></span>
@@ -191,7 +271,7 @@ endif; ?>
                 <p id="modalDesc" style="color:#dc2626; font-weight:bold; margin: 5px 0;">Infração</p>
                 <p id="modalTime" style="color:#666; font-size:14px; margin:0;">Horário</p>
             </div>
-            <button id="btnAssinar" class="btn-assinar">Assinar Ocorrência</button>
+            <button id="btnAssinar" class="btn-assinar">Confirmar Ocorrência</button>
         </div>
     </div>
 

@@ -21,97 +21,143 @@ $userData = mysqli_fetch_assoc($resUser);
 $nomeUsuario = $userData['nome'] ?? ($_SESSION['nome'] ?? 'Usuário');
 $cargoUsuario = ucfirst($userData['cargo'] ?? ($_SESSION['cargo'] ?? 'Visitante'));
 
-// KPIs
-// Infrações do Dia
-$sqlDia = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
-$stmtDia = mysqli_prepare($conn, $sqlDia);
-mysqli_stmt_bind_param($stmtDia, "i", $cursoId);
-mysqli_stmt_execute($stmtDia);
-$resDia = mysqli_stmt_get_result($stmtDia);
-$infraDia = mysqli_fetch_assoc($resDia)['total'] ?? 0;
+// VERIFICA SE É SUPER ADMIN
+$isSuperAdmin = (strtolower($userData['cargo'] ?? $_SESSION['cargo'] ?? '') === 'super_admin');
 
-// Infrações da Semana
-$sqlSemana = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE(), 1)";
-$stmtSemana = mysqli_prepare($conn, $sqlSemana);
-mysqli_stmt_bind_param($stmtSemana, "i", $cursoId);
-mysqli_stmt_execute($stmtSemana);
-$resSemana = mysqli_stmt_get_result($stmtSemana);
-$infraSemana = mysqli_fetch_assoc($resSemana)['total'] ?? 0;
+// 1. KPIs GERAIS (Dia, Semana, Mês)
+if ($isSuperAdmin) {
+    // Queries Globais para Super Admin
+    $sqlDia = "SELECT COUNT(id) as total FROM ocorrencias WHERE data_hora >= CURDATE() AND data_hora < CURDATE() + INTERVAL 1 DAY";
+    $sqlSemana = "SELECT COUNT(id) as total FROM ocorrencias WHERE YEARWEEK(data_hora, 1) = YEARWEEK(CURDATE(), 1)";
+    $sqlMes = "SELECT COUNT(id) as total FROM ocorrencias WHERE MONTH(data_hora) = MONTH(CURDATE()) AND YEAR(data_hora) = YEAR(CURDATE())";
 
-// Infrações do Mês
-$sqlMes = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE()) AND YEAR(o.data_hora) = YEAR(CURDATE())";
-$stmtMes = mysqli_prepare($conn, $sqlMes);
-mysqli_stmt_bind_param($stmtMes, "i", $cursoId);
-mysqli_stmt_execute($stmtMes);
-$resMes = mysqli_stmt_get_result($stmtMes);
-$infraMes = mysqli_fetch_assoc($resMes)['total'] ?? 0;
+    $resDia = mysqli_query($conn, $sqlDia);
+    $infraDia = mysqli_fetch_assoc($resDia)['total'] ?? 0;
 
-// MÉDIA TURMA
-$sqlTotalAlunos = "SELECT COUNT(*) as total FROM alunos WHERE curso_id = ?";
-$stmtAlunosTotal = mysqli_prepare($conn, $sqlTotalAlunos);
-mysqli_stmt_bind_param($stmtAlunosTotal, "i", $cursoId);
-mysqli_stmt_execute($stmtAlunosTotal);
-$resTotalAlunos = mysqli_stmt_get_result($stmtAlunosTotal);
-$totalAlunos = (int)(mysqli_fetch_assoc($resTotalAlunos)['total'] ?? 0);
+    $resSemana = mysqli_query($conn, $sqlSemana);
+    $infraSemana = mysqli_fetch_assoc($resSemana)['total'] ?? 0;
 
-// MÉDIA TURMA (Conformidade baseada em alunos ÚNICOS sem infração hoje - FILTRADO POR CURSO)
-$sqlAlunosHoje = "SELECT COUNT(DISTINCT o.aluno_id) as total 
-                  FROM ocorrencias o 
-                  JOIN alunos a ON a.id = o.aluno_id 
-                  WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
-$stmtAlunosHoje = mysqli_prepare($conn, $sqlAlunosHoje);
-mysqli_stmt_bind_param($stmtAlunosHoje, "i", $cursoId);
-mysqli_stmt_execute($stmtAlunosHoje);
-$resAlunosHoje = mysqli_stmt_get_result($stmtAlunosHoje);
-$alunosComInfracaoHoje = (int)(mysqli_fetch_assoc($resAlunosHoje)['total'] ?? 0);
+    $resMes = mysqli_query($conn, $sqlMes);
+    $infraMes = mysqli_fetch_assoc($resMes)['total'] ?? 0;
 
+    // Ontem, Semana Ant, Mês Ant (Global)
+    $sqlOntem = "SELECT COUNT(id) as total FROM ocorrencias WHERE data_hora >= CURDATE() - INTERVAL 1 DAY AND data_hora < CURDATE()";
+    $infraOntem = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sqlOntem))['total'] ?? 0);
+
+    $sqlSemAnt = "SELECT COUNT(id) as total FROM ocorrencias WHERE YEARWEEK(data_hora, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)";
+    $infraSemanaAnterior = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sqlSemAnt))['total'] ?? 0);
+
+    $sqlMesAnt = "SELECT COUNT(id) as total FROM ocorrencias WHERE MONTH(data_hora) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(data_hora) = YEAR(CURDATE() - INTERVAL 1 MONTH)";
+    $infraMesAnterior = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sqlMesAnt))['total'] ?? 0);
+
+    // Média Turma (Global)
+    $sqlTotalAlunos = "SELECT COUNT(*) as total FROM alunos";
+    $totalAlunos = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sqlTotalAlunos))['total'] ?? 0);
+
+    $sqlAlunosHoje = "SELECT COUNT(DISTINCT aluno_id) as total FROM ocorrencias WHERE data_hora >= CURDATE() AND data_hora < CURDATE() + INTERVAL 1 DAY";
+    $alunosComInfracaoHoje = (int)(mysqli_fetch_assoc(mysqli_query($conn, $sqlAlunosHoje))['total'] ?? 0);
+
+    // Ranking (Cursos)
+    $sqlTop = "SELECT c.nome, COUNT(o.id) AS total 
+               FROM ocorrencias o 
+               JOIN alunos a ON o.aluno_id = a.id 
+               JOIN cursos c ON a.curso_id = c.id 
+               GROUP BY c.id ORDER BY total DESC LIMIT 5";
+    $listaRanking = mysqli_fetch_all(mysqli_query($conn, $sqlTop), MYSQLI_ASSOC);
+    $tituloRanking = "Cursos com mais Infrações";
+
+    $sqlRanking = "SELECT c.nome, COUNT(o.id) AS total 
+                   FROM ocorrencias o 
+                   JOIN alunos a ON o.aluno_id = a.id 
+                   JOIN cursos c ON a.curso_id = c.id 
+                   GROUP BY c.id ORDER BY total DESC";
+    $rankingModal = mysqli_fetch_all(mysqli_query($conn, $sqlRanking), MYSQLI_ASSOC);
+} else {
+    // Queries por Curso para Professor
+    $sqlDia = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
+    $stmtDia = mysqli_prepare($conn, $sqlDia);
+    mysqli_stmt_bind_param($stmtDia, "i", $cursoId);
+    mysqli_stmt_execute($stmtDia);
+    $infraDia = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtDia))['total'] ?? 0;
+
+    $sqlSemana = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE(), 1)";
+    $stmtSemana = mysqli_prepare($conn, $sqlSemana);
+    mysqli_stmt_bind_param($stmtSemana, "i", $cursoId);
+    mysqli_stmt_execute($stmtSemana);
+    $infraSemana = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemana))['total'] ?? 0;
+
+    $sqlMes = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE()) AND YEAR(o.data_hora) = YEAR(CURDATE())";
+    $stmtMes = mysqli_prepare($conn, $sqlMes);
+    mysqli_stmt_bind_param($stmtMes, "i", $cursoId);
+    mysqli_stmt_execute($stmtMes);
+    $infraMes = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMes))['total'] ?? 0;
+
+    // Ontem, Semana Ant, Mês Ant (Curso)
+    $sqlOntem = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() - INTERVAL 1 DAY AND o.data_hora < CURDATE()";
+    $stmtOntem = mysqli_prepare($conn, $sqlOntem);
+    mysqli_stmt_bind_param($stmtOntem, "i", $cursoId);
+    mysqli_stmt_execute($stmtOntem);
+    $infraOntem = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtOntem))['total'] ?? 0);
+
+    $sqlSemAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)";
+    $stmtSemAnt = mysqli_prepare($conn, $sqlSemAnt);
+    mysqli_stmt_bind_param($stmtSemAnt, "i", $cursoId);
+    mysqli_stmt_execute($stmtSemAnt);
+    $infraSemanaAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemAnt))['total'] ?? 0);
+
+    $sqlMesAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(o.data_hora) = YEAR(CURDATE() - INTERVAL 1 MONTH)";
+    $stmtMesAnt = mysqli_prepare($conn, $sqlMesAnt);
+    mysqli_stmt_bind_param($stmtMesAnt, "i", $cursoId);
+    mysqli_stmt_execute($stmtMesAnt);
+    $infraMesAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMesAnt))['total'] ?? 0);
+
+    // Média Turma (Curso)
+    $sqlTotalAlunos = "SELECT COUNT(*) as total FROM alunos WHERE curso_id = ?";
+    $stmtTotal = mysqli_prepare($conn, $sqlTotalAlunos);
+    mysqli_stmt_bind_param($stmtTotal, "i", $cursoId);
+    mysqli_stmt_execute($stmtTotal);
+    $totalAlunos = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtTotal))['total'] ?? 0);
+
+    $sqlAlunosHoje = "SELECT COUNT(DISTINCT o.aluno_id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY";
+    $stmtAlunosHoje = mysqli_prepare($conn, $sqlAlunosHoje);
+    mysqli_stmt_bind_param($stmtAlunosHoje, "i", $cursoId);
+    mysqli_stmt_execute($stmtAlunosHoje);
+    $alunosComInfracaoHoje = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtAlunosHoje))['total'] ?? 0);
+
+    // Ranking (Alunos)
+    $sqlTop = "SELECT a.nome, COUNT(o.id) AS total 
+               FROM alunos a 
+               JOIN ocorrencias o ON a.id = o.aluno_id 
+               WHERE a.curso_id = ? 
+               GROUP BY a.id ORDER BY total DESC LIMIT 5";
+    $stmtTop = mysqli_prepare($conn, $sqlTop);
+    mysqli_stmt_bind_param($stmtTop, "i", $cursoId);
+    mysqli_stmt_execute($stmtTop);
+    $listaRanking = mysqli_fetch_all(mysqli_stmt_get_result($stmtTop), MYSQLI_ASSOC);
+    $tituloRanking = "Alunos com mais Infrações";
+
+    $sqlRanking = "SELECT a.nome, COUNT(o.id) AS total 
+                   FROM alunos a 
+                   JOIN ocorrencias o ON a.id = o.aluno_id 
+                   WHERE a.curso_id = ? 
+                   GROUP BY a.id ORDER BY total DESC";
+    $stmtRankingModal = mysqli_prepare($conn, $sqlRanking);
+    mysqli_stmt_bind_param($stmtRankingModal, "i", $cursoId);
+    mysqli_stmt_execute($stmtRankingModal);
+    $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQLI_ASSOC);
+}
+
+// CÁLCULO DAS PORCENTAGENS E MÉDIA
 if ($totalAlunos === 0) {
     $mediaTurma = 100;
-}
-else {
+} else {
     $mediaTurma = round((($totalAlunos - $alunosComInfracaoHoje) / $totalAlunos) * 100);
-    $mediaTurma = max(0, min(100, $mediaTurma));
 }
+$mediaTurma = max(0, min(100, $mediaTurma));
 
-// ALUNOS CRÍTICOS
-$sqlCriticos = "SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC LIMIT 5";
-$stmtAlunosCriticos = mysqli_prepare($conn, $sqlCriticos);
-mysqli_stmt_bind_param($stmtAlunosCriticos, "i", $cursoId);
-mysqli_stmt_execute($stmtAlunosCriticos);
-$resCriticos = mysqli_stmt_get_result($stmtAlunosCriticos);
-$alunosCriticos = mysqli_fetch_all($resCriticos, MYSQLI_ASSOC);
-
-// COMPARAÇÕES
-// Ontem
-$sqlOntem = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND o.data_hora >= CURDATE() - INTERVAL 1 DAY AND o.data_hora < CURDATE()";
-$stmtOntem = mysqli_prepare($conn, $sqlOntem);
-mysqli_stmt_bind_param($stmtOntem, "i", $cursoId);
-mysqli_stmt_execute($stmtOntem);
-$infraOntem = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtOntem))['total'] ?? 0);
-$percDia = ($infraOntem > 0) ? round((($infraDia - $infraOntem) / $infraOntem) * 100, 1) : ($infraDia * 100);
-
-// Semana Anterior
-$sqlSemAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE() - INTERVAL 1 WEEK, 1)";
-$stmtSemAnt = mysqli_prepare($conn, $sqlSemAnt);
-mysqli_stmt_bind_param($stmtSemAnt, "i", $cursoId);
-mysqli_stmt_execute($stmtSemAnt);
-$infraSemanaAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtSemAnt))['total'] ?? 0);
-$percSemana = ($infraSemanaAnterior > 0) ? round((($infraSemana - $infraSemanaAnterior) / $infraSemanaAnterior) * 100, 1) : ($infraSemana * 100);
-
-// Mês Anterior
-$sqlMesAnt = "SELECT COUNT(o.id) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE a.curso_id = ? AND MONTH(o.data_hora) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(o.data_hora) = YEAR(CURDATE() - INTERVAL 1 MONTH)";
-$stmtMesAnt = mysqli_prepare($conn, $sqlMesAnt);
-mysqli_stmt_bind_param($stmtMesAnt, "i", $cursoId);
-mysqli_stmt_execute($stmtMesAnt);
-$infraMesAnterior = (int)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMesAnt))['total'] ?? 0);
-$percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $infraMesAnterior) * 100, 1) : ($infraMes * 100);
-
-// Ranking Modal
-$sqlRanking = "SELECT a.nome, COUNT(o.id) AS total FROM alunos a JOIN ocorrencias o ON a.id = o.aluno_id WHERE a.curso_id = ? GROUP BY a.id ORDER BY total DESC";
-$stmtRankingModal = mysqli_prepare($conn, $sqlRanking);
-mysqli_stmt_bind_param($stmtRankingModal, "i", $cursoId);
-mysqli_stmt_execute($stmtRankingModal);
-$rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQLI_ASSOC);
+$percDia = ($infraOntem > 0) ? round((($infraDia - $infraOntem) / $infraOntem) * 100, 1) : ($infraDia > 0 ? 100 : 0);
+$percSemana = ($infraSemanaAnterior > 0) ? round((($infraSemana - $infraSemanaAnterior) / $infraSemanaAnterior) * 100, 1) : ($infraSemana > 0 ? 100 : 0);
+$percMes = ($infraMesAnterior > 0) ? round((($infraMes - $infraMesAnterior) / $infraMesAnterior) * 100, 1) : ($infraMes > 0 ? 100 : 0);
 ?>
 
 <!DOCTYPE html>
@@ -124,23 +170,23 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/dashboard.css">
-        <link rel="stylesheet" href="../css/nav.css">
-        <link rel="stylesheet" href="../css/dark.css">
-        <link rel="stylesheet" href="../css/transitions.css">
-        <script src="../js/Dark.js"></script>
-        <script src="../js/transitions.js"></script>
-        <script>
-            window.totalStudents = <?php echo $totalAlunos; ?>;
-        </script>
-        <!-- Bibliotecas para PDF -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/dark.css">
+    <link rel="stylesheet" href="../css/transitions.css">
+    <script src="../js/Dark.js"></script>
+    <script src="../js/transitions.js"></script>
+    <script>
+        window.totalStudents = <?php echo $totalAlunos; ?>;
+    </script>
+    <!-- Bibliotecas para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
 
- 
-   <?php include __DIR__ . '/../components/sidebar.php'; ?>
+
+    <?php include __DIR__ . '/../components/sidebar.php'; ?>
 
     <main class="main-content">
 
@@ -153,13 +199,15 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
             <div class="header-actions">
                 <a href="configuracoes.php" class="btn-header-action" title="Configurações">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
                     </svg>
                 </a>
 
                 <a href="infracoes.php" class="btn-header-action" title="Notificações">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
                     <span class="notif-badge" id="notifBadge">0</span>
                 </a>
@@ -205,7 +253,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiDia"><?php echo $infraDia; ?></span>
                     <span id="badgeDia" class="badge <?php echo $percDia >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo($percDia >= 0 ? '↗ ' : '↘ ') . abs($percDia); ?>%
+                        <?php echo ($percDia >= 0 ? '↗ ' : '↘ ') . abs($percDia); ?>%
                     </span>
                 </div>
             </div>
@@ -214,7 +262,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiSemana"><?php echo $infraSemana; ?></span>
                     <span id="badgeSemana" class="badge <?php echo $percSemana >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo($percSemana >= 0 ? '↗ ' : '↘ ') . abs($percSemana); ?>%
+                        <?php echo ($percSemana >= 0 ? '↗ ' : '↘ ') . abs($percSemana); ?>%
                     </span>
                 </div>
             </div>
@@ -223,7 +271,7 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                 <div class="kpi-value">
                     <span id="kpiMes"><?php echo $infraMes; ?></span>
                     <span id="badgeMes" class="badge <?php echo $percMes >= 0 ? 'up' : 'down'; ?>">
-                        <?php echo($percMes >= 0 ? '↗ ' : '↘ ') . abs($percMes); ?>%
+                        <?php echo ($percMes >= 0 ? '↗ ' : '↘ ') . abs($percMes); ?>%
                     </span>
                 </div>
             </div>
@@ -233,20 +281,17 @@ $rankingModal = mysqli_fetch_all(mysqli_stmt_get_result($stmtRankingModal), MYSQ
                     <span id="kpiMedia"><?php echo $mediaTurma; ?>%</span>
 
                     <?php
-// Lógica de Status de Conformidade
-if ($mediaTurma < 70) {
-    echo '<span class="status-badge status-critico" title="Risco alto! Bloqueio ou intervenção imediata">🚨 CRÍTICO</span>';
-}
-elseif ($mediaTurma < 85) {
-    echo '<span class="status-badge status-alto" title="Abaixo do aceitável! Requer plano de ação">🟠 ALTO RISCO</span>';
-}
-elseif ($mediaTurma < 95) {
-    echo '<span class="status-badge status-moderado" title="Nível aceitável, mas requer monitoramento">🟡 MODERADO</span>';
-}
-else {
-    echo '<span class="status-badge status-baixo" title="Operação segura e padrão ideal">🟢 CONTROLADO</span>';
-}
-?>
+                    // Lógica de Status de Conformidade
+                    if ($mediaTurma < 70) {
+                        echo '<span class="status-badge status-critico" title="Risco alto! Bloqueio ou intervenção imediata">🚨 CRÍTICO</span>';
+                    } elseif ($mediaTurma < 85) {
+                        echo '<span class="status-badge status-alto" title="Abaixo do aceitável! Requer plano de ação">🟠 ALTO RISCO</span>';
+                    } elseif ($mediaTurma < 95) {
+                        echo '<span class="status-badge status-moderado" title="Nível aceitável, mas requer monitoramento">🟡 MODERADO</span>';
+                    } else {
+                        echo '<span class="status-badge status-baixo" title="Operação segura e padrão ideal">🟢 CONTROLADO</span>';
+                    }
+                    ?>
                 </div>
             </div>
         </div>
@@ -305,32 +350,33 @@ else {
 
             <div class="card">
                 <div class="section-header">
-                    <span class="section-title">Alunos + Infrações</span>
+                    <span class="section-title"><?php echo $tituloRanking; ?></span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
 
                     <?php
-if (count($alunosCriticos) > 0):
-    foreach ($alunosCriticos as $aluno):
-        $width = ($aluno['total'] > 20) ? 100 : ($aluno['total'] * 5);
-        $color = ($aluno['total'] > 10) ? '#E30613' : '#1F2937';
-?>
-                            <div class="list-item" onclick="irParaInfracoes('<?php echo addslashes($aluno['nome']); ?>')" style="cursor: pointer;" title="Ver todas as infrações de <?php echo htmlspecialchars($aluno['nome']); ?>">
+                    if (count($listaRanking) > 0):
+                        foreach ($listaRanking as $item):
+                            $width = ($item['total'] > 20) ? 100 : ($item['total'] * 5);
+                            $color = ($item['total'] > 10) ? '#E30613' : '#1F2937';
+                            $clickAction = $isSuperAdmin ? "" : "onclick=\"irParaInfracoes('" . addslashes($item['nome']) . "')\" style=\"cursor: pointer;\" title=\"Ver todas as infrações de " . htmlspecialchars($item['nome']) . "\"";
+                    ?>
+                            <div class="list-item" <?php echo $clickAction; ?>>
                                 <span
-                                    style="font-size: 13px; font-weight: 600;"><?php echo htmlspecialchars($aluno['nome']); ?></span>
+                                    style="font-size: 13px; font-weight: 600;"><?php echo htmlspecialchars($item['nome']); ?></span>
                                 <div class="progress-bar">
                                     <div class="progress-fill"
                                         style="width: <?php echo $width; ?>%; ">
                                     </div>
                                 </div>
-                                <span style="font-size: 12px; font-weight: bold;"><?php echo $aluno['total']; ?></span>
+                                <span style="font-size: 12px; font-weight: bold;"><?php echo $item['total']; ?></span>
                             </div>
                         <?php
-    endforeach;
-else: ?>
+                        endforeach;
+                    else: ?>
                         <div class="list-item"><span style="font-size:13px;">Sem dados ainda.</span></div>
                     <?php
-endif; ?>
+                    endif; ?>
 
                     <div style="text-align:center; margin-top:10px;">
                         <a href="javascript:void(0)" onclick="openAlunosModal()"
@@ -451,7 +497,7 @@ endif; ?>
             <div class="modal-ranking-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h2>Ranking Geral</h2>
+                        <h2>Ranking Geral (<?php echo $isSuperAdmin ? 'Cursos' : 'Alunos'; ?>)</h2>
                         <p style="margin: 0; font-size: 0.8rem; color: #64748b;">Lista completa de infrações</p>
                     </div>
                     <button onclick="closeAlunosModal()"
@@ -464,7 +510,7 @@ endif; ?>
                     <thead>
                         <tr>
                             <th>Pos.</th>
-                            <th>Aluno</th>
+                            <th><?php echo $isSuperAdmin ? 'Curso' : 'Aluno'; ?></th>
                             <th style="text-align: right;">Total</th>
                         </tr>
                     </thead>
@@ -479,14 +525,14 @@ endif; ?>
                                     </td>
                                 </tr>
                             <?php
-    endforeach; ?>
+                            endforeach; ?>
                         <?php
-else: ?>
+                        else: ?>
                             <tr>
                                 <td colspan="3" style="text-align:center;">Nenhum dado encontrado.</td>
                             </tr>
                         <?php
-endif; ?>
+                        endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -505,9 +551,9 @@ endif; ?>
     </script>
     <script src="../js/dashboard.js" defer></script>
     <script src="../js/notifications.js" defer></script>
-   <script src="../js/global.js"></script>
+    <script src="../js/global.js"></script>
     <script src="../js/Dark.js"></script>
     <script src="../js/configuracao.js"></script>
 </body>
 
-</html>
+</html>   
