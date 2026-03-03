@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    loadOcorrencias();
+    // Verifica se há um ID na URL para focar
+    const urlParams = new URLSearchParams(window.location.search);
+    const focusId = urlParams.get('id');
+
+    loadOcorrencias('', focusId);
 
     const searchInput = document.getElementById('searchOcorrencia');
     if (searchInput) {
@@ -24,19 +28,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function loadOcorrencias(search = '') {
+function loadOcorrencias(search = '', focusId = null) {
     const tbody = document.getElementById('tableOcorrencias');
     const cursoId = document.getElementById('filterCurso')?.value || 'todos';
 
     let url = `../apis/api.php?action=list_all_ocorrencias&search=${encodeURIComponent(search)}`;
     if (cursoId !== 'todos') url += `&curso_id=${cursoId}`;
+    if (focusId) url += `&show_id=${focusId}`;
 
     fetch(url)
         .then(res => res.json())
         .then(data => {
             tbody.innerHTML = '';
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Nenhuma ocorrência pendente encontrada.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Nesta visualização não há ocorrências disponíveis.</td></tr>';
                 return;
             }
 
@@ -44,24 +49,32 @@ function loadOcorrencias(search = '') {
                 const date = new Date(o.data_hora);
                 const dateF = date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR').substring(0, 5);
 
-                const statusClass = 'status-pendente';
+                const isResolvido = (o.status_formatado === 'Resolvido');
+                const statusClass = isResolvido ? 'status-resolvido' : 'status-pendente';
+                const statusText = isResolvido ? 'Verificado' : 'Aguardando Verificação';
 
                 tbody.innerHTML += `
-                    <tr>
+                    <tr id="row-occ-${o.id}" style="${o.id == focusId ? 'background: #fff7ed; border-left: 4px solid var(--primary);' : ''}">
                         <td style="font-size: 0.85rem; color: #64748b;">${dateF}</td>
                         <td style="font-weight: 600;">${o.aluno_nome}</td>
                         <td>${o.curso_nome || 'Geral'}</td>
                         <td style="color: #dc2626; font-weight: 500;">${o.epi_nome}</td>
-                        <td><span class="status-badge ${statusClass}">Aguardando Verificação</span></td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                         <td style="text-align: right;">
                             <button class="btn-verify" onclick='openVerifyModal(${JSON.stringify(o).replace(/'/g, "&apos;")})'>
-                                <i data-lucide="check-circle" style="width:16px;"></i> Verificar
+                                <i data-lucide="${isResolvido ? 'eye' : 'check-circle'}" style="width:16px;"></i> ${isResolvido ? 'Ver' : 'Verificar'}
                             </button>
                         </td>
                     </tr>
                 `;
             });
             lucide.createIcons();
+
+            // Se tiver foco, abre o modal
+            if (focusId) {
+                const target = data.find(x => x.id == focusId);
+                if (target) openVerifyModal(target);
+            }
         });
 }
 
@@ -71,8 +84,11 @@ function openVerifyModal(o) {
     const date = new Date(o.data_hora);
     const dateF = date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR').substring(0, 5);
 
+    const isResolvido = (o.status_formatado === 'Resolvido');
+
     details.innerHTML = `
         <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
+            <p><strong>Status:</strong> <span style="color: ${isResolvido ? '#059669' : '#d97706'}">${o.status_formatado || 'Pendente'}</span></p>
             <p><strong>Aluno:</strong> ${o.aluno_nome}</p>
             <p><strong>Curso:</strong> ${o.curso_nome || 'Geral'}</p>
             <p><strong>Infração:</strong> ${o.epi_nome}</p>
@@ -82,6 +98,12 @@ function openVerifyModal(o) {
             </div>
         </div>
     `;
+
+    // Se já estiver resolvido, esconde o botão de confirmação ou mostra desabilitado
+    const submitBtn = document.querySelector('#formVerify .btn-submit');
+    if (submitBtn) {
+        submitBtn.style.display = isResolvido ? 'none' : 'block';
+    }
 
     const modal = document.getElementById('modalVerify');
     modal.classList.add('active');

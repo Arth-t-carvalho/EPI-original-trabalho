@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // --- FUNÇÃO DO MODAL (Chamada pelo PHP) ---
-function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorrenciaId, isAssinada = 0) {
+function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorrenciaId, isAssinada = 0, epiId = '') {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImg');
     const modalName = document.getElementById('modalName');
@@ -100,6 +100,7 @@ function openModalPHP(imgUrl, nome, epi, horaTexto, dataCompleta, alunoId, ocorr
                     ocorrencia_id: ocorrenciaId,
                     aluno_id: alunoId,
                     epi: epi,
+                    epi_id: epiId,
                     data: dataCompleta,
                     hora: horaTexto
                 });
@@ -156,4 +157,33 @@ function forceClose() {
         modal.classList.remove('active');
         document.getElementById('modalImg').src = "";
     }
+}
+
+// --- FUNÇÕES DO NOVO MODAL DE CURSOS ---
+function openCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function selectCourse(id) {
+    const filterInput = document.getElementById('curso_id_filter');
+    if (filterInput) {
+        filterInput.value = id;
+        // Submete o formulário pai
+        filterInput.closest('form').submit();
+    }
+}
+
+function filterCoursesModal() {
+    const term = document.getElementById('searchCourseModal').value.toLowerCase();
+    const rows = document.querySelectorAll('.course-row-item');
+    rows.forEach(row => {
+        const nome = row.getAttribute('data-nome');
+        row.style.display = nome.includes(term) ? 'table-row' : 'none';
+    });
 }

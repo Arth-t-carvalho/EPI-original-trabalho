@@ -37,6 +37,39 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
     <link rel="stylesheet" href="../css/dark.css">
     <link rel="stylesheet" href="../css/transitions.css">
     <link rel="stylesheet" href="../css/gestao.css">
+    <style>
+        .course-select-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .course-select-box:hover {
+            border-color: var(--primary);
+            background: #fff;
+        }
+        .course-list-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+        }
+        .course-item-option {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+        }
+        .course-item-option:hover {
+            background: #fef2f2;
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../js/Dark.js"></script>
     <script src="../js/transitions.js"></script>
@@ -125,20 +158,12 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
             <form id="formProf">
                 <input type="hidden" name="id" id="profId">
                 <div class="form-group">
-                    <label>Nome Completo</label>
-                    <input type="text" name="nome" id="profNome" class="form-input" required>
+                    <label for="profUser">Autorizar Gmail ou CPF</label>
+                    <input type="text" id="profUser" name="usuario" class="form-input" placeholder="exemplo@gmail.com ou 12345678901" required>
+                    <small style="color: var(--text-muted); font-size: 11px; margin-top: 5px; display: block;">* O professor usará este dado para se cadastrar futuramente.</small>
                 </div>
                 <div class="form-group">
-                    <label for="profUser">Usuário (E-mail Gmail)</label>
-                    <input type="email" id="profUser" name="usuario" class="form-input" placeholder="exemplo@gmail.com" required>
-                    <small style="color: var(--text-muted); font-size: 11px; margin-top: 5px; display: block;">* Somente endereços @gmail.com são permitidos.</small>
-                </div>
-                <div class="form-group">
-                    <label>Senha <small id="passLabel">(Deixe em branco para não alterar)</small></label>
-                    <input type="password" name="senha" id="profPass" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Cargo</label>
+                    <label>Cargo de Permissão</label>
                     <select name="cargo" id="profCargo" class="form-select" required>
                         <option value="instrutor">Instrutor</option>
                         <option value="supervisor">Supervisor</option>
@@ -147,17 +172,38 @@ $listaCursos = mysqli_fetch_all($resCursos, MYSQLI_ASSOC);
                 </div>
                 <div class="form-group">
                     <label>Vínculo de Curso</label>
-                    <select name="id_curso" id="profCurso" class="form-select" required>
-                        <?php foreach($listaCursos as $curso): ?>
-                            <option value="<?= $curso['id']; ?>"><?= htmlspecialchars($curso['nome']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="hidden" name="id_curso" id="profCurso">
+                    <div id="courseSelectTrigger" class="course-select-box" onclick="openModal('modalSelectCurso')">
+                        <span id="selectedCourseName">Selecionar Curso...</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="button" class="btn-gestao" onclick="closeModal('modalProf')" style="flex:1; background: #eee; color: #333;">Cancelar</button>
-                    <button type="submit" class="btn-gestao btn-add" style="flex:1;">Salvar Credenciais</button>
+                    <button type="submit" class="btn-gestao btn-add" style="flex:1;">Autorizar Acesso</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Especial de Seleção de Curso -->
+    <div class="modal-gestao" id="modalSelectCurso" style="z-index: 11000;">
+        <div class="modal-content-gestao" style="width: 400px;">
+            <div class="modal-header-gestao">
+                <h2>Selecionar Curso</h2>
+                <button class="btn-close-modal" onclick="closeModal('modalSelectCurso')">&times;</button>
+            </div>
+            <div class="search-wrapper" style="margin-bottom: 15px; width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 5px 10px;">
+                <i data-lucide="search" style="width: 16px; color: #999;"></i>
+                <input type="text" id="searchCourseModal" class="search-input" placeholder="Filtrar cursos..." oninput="filterCoursesModal()" style="border: none; outline: none; padding: 5px; width: 100%;">
+            </div>
+            <div class="course-list-scroll" id="courseListModal">
+                <?php foreach($listaCursos as $curso): ?>
+                    <div class="course-item-option" data-nome="<?= strtolower(htmlspecialchars($curso['nome'])); ?>" onclick="selectCourse('<?= $curso['id']; ?>', '<?= htmlspecialchars($curso['nome']); ?>')">
+                        <?= htmlspecialchars($curso['nome']); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
     </div>
 

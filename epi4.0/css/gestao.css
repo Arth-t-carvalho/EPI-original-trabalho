@@ -216,8 +216,18 @@ body.dark-mode .btn-cancel-confirm:hover {
     color: var(--text-main);
 }
 
+.gestao-table tr {
+    transition: all 0.2s ease;
+}
+
 .gestao-table tr:hover {
-    background: #4b5563;
+    background: rgba(227, 6, 19, 0.04);
+    box-shadow: inset 4px 0 0 var(--primary);
+}
+
+body.dark-mode .gestao-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 4px 0 0 var(--primary);
 }
 
 /* --- Botões de Ação --- */

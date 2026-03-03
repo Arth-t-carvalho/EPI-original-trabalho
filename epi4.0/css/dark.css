@@ -298,8 +298,11 @@ body.dark-mode #modalTableBody td {
     color: #E5E7EB;
 }
 
-body.dark-mode .custom-table tr:hover {
-    background-color: #111827;
+body.dark-mode .custom-table tr:hover,
+body.dark-mode .gestao-table tr:hover,
+body.dark-mode .ranking-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    box-shadow: inset 4px 0 0 var(--primary) !important;
 }
 
 body.dark-mode .btn-modal-action {

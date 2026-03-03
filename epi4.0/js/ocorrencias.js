@@ -18,6 +18,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 1.5 Pre-enchimento via URL (Se vier de infrações.php)
+    const urlParams = new URLSearchParams(window.location.search);
+    const alunoIdParam = urlParams.get('aluno_id');
+    const epiParam = urlParams.get('epi');
+    const epiIdParam = urlParams.get('epi_id');
+    const dataParam = urlParams.get('data');
+    const horaParam = urlParams.get('hora');
+    const occIdParam = urlParams.get('ocorrencia_id');
+
+    if (alunoIdParam) {
+        const studentSelect = document.getElementById('studentNameInput');
+        if (studentSelect) studentSelect.value = alunoIdParam;
+    }
+
+    if (epiParam) {
+        const reasonInput = document.getElementById('reasonInput');
+        if (reasonInput) reasonInput.value = epiParam;
+    }
+
+    if (dataParam && horaParam) {
+        const dateTimeInput = document.getElementById('dateTimeInput');
+        if (dateTimeInput) dateTimeInput.value = `${dataParam} ${horaParam}`;
+    }
+
+    if (occIdParam) {
+        const occInput = document.getElementById('ocorrenciaId');
+        if (occInput) occInput.value = occIdParam;
+    }
+
     // 3. Envio do Formulário
     const incidentForm = document.getElementById('incidentForm');
     if (incidentForm) {
@@ -25,9 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
 
             const formData = new FormData(this);
-            // Adiciona o motivo (razão) se necessário - o formulário tem o campo #reasonInput
-            // Como no seu HTML ele é readonly, vamos pegar o valor dele ou fixar um ID de EPI
-            formData.append('epi_id', 1); // Supondo ID 1 como padrão se for manual por enquanto
+
+            // Define o EPI ID
+            // Se veio via parâmetro, usa ele. Se não, usa 1 (padrão)
+            const finalEpiId = epiIdParam || 1;
+            formData.append('epi_id', finalEpiId);
+
+            // Decide qual ação da API chamar
+            const action = occIdParam ? 'resolve_occurrence' : 'save_occurrence';
 
             // Adiciona fotos do fileInput
             const fileInput = document.getElementById('fileInput');
@@ -37,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            fetch('../apis/api.php?action=save_occurrence', {
+            fetch(`../apis/api.php?action=${action}`, {
                 method: 'POST',
                 body: formData
             })

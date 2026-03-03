@@ -56,7 +56,20 @@ try {
                  WHERE o_inner.aluno_id = a.id AND o_inner.epi_id = e_inner.id 
                  ORDER BY o_inner.data_hora DESC LIMIT 1
              ) = 0
-            ) as missing_epis_persistento
+            ) as missing_epis_persistento,
+            -- Busca a última ocorrência assinada hoje (para o indicador visual)
+            (SELECT o3.id 
+             FROM ocorrencias o3 
+             JOIN acoes_ocorrencia ac3 ON ac3.ocorrencia_id = o3.id
+             WHERE o3.aluno_id = a.id AND DATE(o3.data_hora) = CURDATE()
+             ORDER BY o3.data_hora DESC LIMIT 1
+            ) as last_signed_id,
+            (SELECT DATE_FORMAT(ac4.data_hora, '%d/%m/%Y')
+             FROM acoes_ocorrencia ac4
+             JOIN ocorrencias o4 ON o4.id = ac4.ocorrencia_id
+             WHERE o4.aluno_id = a.id AND DATE(o4.data_hora) = CURDATE()
+             ORDER BY ac4.data_hora DESC LIMIT 1
+            ) as last_signed_date
         FROM alunos a
         LEFT JOIN cursos c ON a.curso_id = c.id
         WHERE 1=1
@@ -108,7 +121,9 @@ try {
             'history_count' => (int)$row['history_total'],
             'infractions_today' => (int)$row['infractions_today'],
             'daily_avg'     => (float)$row['daily_avg'],
-            'status'        => $status
+            'status'        => $status,
+            'signed_id'     => $row['last_signed_id'] ? (int)$row['last_signed_id'] : null,
+            'signed_date'   => $row['last_signed_date'] ?: null
         ];
     }
 

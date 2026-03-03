@@ -6,10 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(this);
-            const email = formData.get('usuario');
+            const user = formData.get('usuario');
 
-            if (!email.toLowerCase().endsWith('@gmail.com')) {
-                showNotification('Erro de Validação', 'O usuário deve ser um e-mail @gmail.com válido.');
+            if (!user) {
+                showNotification('Erro', 'Por favor, insira um Gmail ou CPF.');
                 return;
             }
 
@@ -36,9 +36,17 @@ function loadProfs(search = '') {
                 return;
             }
             data.forEach(p => {
+                const isPending = !p.senha || p.nome === 'Aguardando Cadastro';
+                const statusHtml = isPending 
+                    ? `<span class="badge-status pending" style="background:#fff7ed; color:#c2410c; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid #ffedd5;">Pendente</span>`
+                    : `<span class="badge-status active" style="background:#f0fdf4; color:#15803d; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid #dcfce7;">Ativo</span>`;
+
                 tbody.innerHTML += `
                     <tr>
-                        <td style="font-weight: 600;">${p.nome}</td>
+                        <td style="font-weight: 600;">
+                            ${p.nome}
+                            <div style="margin-top:4px;">${statusHtml}</div>
+                        </td>
                         <td>${p.usuario}</td>
                         <td><span class="badge-cargo">${p.cargo}</span></td>
                         <td>${p.curso_nome || 'Nenhum'}</td>
@@ -69,7 +77,7 @@ function saveProf(formData) {
             if (data.status === 'success') {
                 closeModal('modalProf');
                 loadProfs();
-                showNotification('Sucesso', 'Professor salvo com sucesso!');
+                showNotification('Sucesso', 'Acesso autorizado com sucesso!');
             } else {
                 alert('Erro: ' + data.message);
             }
@@ -99,31 +107,45 @@ function deleteProf(id) {
 }
 
 function editProf(p) {
-    document.getElementById('modalLabel').innerText = 'Editar Professor';
+    document.getElementById('modalLabel').innerText = 'Editar Autorização';
     document.getElementById('profId').value = p.id;
-    document.getElementById('profNome').value = p.nome;
     document.getElementById('profUser').value = p.usuario;
-    document.getElementById('profPass').value = '';
     document.getElementById('profCargo').value = p.cargo;
-    document.getElementById('profCurso').value = p.id_curso;
-    document.getElementById('passLabel').style.display = 'inline';
+    
+    // Set course
+    selectCourse(p.id_curso, p.curso_nome || 'Selecionar Curso...');
+    
     openModal('modalProf');
 }
 
 function openModal(id) {
     document.getElementById(id).classList.add('active');
     if (id === 'modalProf' && !document.getElementById('profId').value) {
-        document.getElementById('modalLabel').innerText = 'Novo Professor';
+        document.getElementById('modalLabel').innerText = 'Autorizar Professor';
         document.getElementById('formProf').reset();
-        document.getElementById('passLabel').style.display = 'none';
-        document.getElementById('profPass').required = true;
-    } else {
-        document.getElementById('profPass').required = false;
+        document.getElementById('profCurso').value = '';
+        document.getElementById('selectedCourseName').innerText = 'Selecionar Curso...';
     }
 }
 
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
+}
+
+// Funções de Seleção de Curso
+function selectCourse(id, nome) {
+    document.getElementById('profCurso').value = id;
+    document.getElementById('selectedCourseName').innerText = nome;
+    closeModal('modalSelectCurso');
+}
+
+function filterCoursesModal() {
+    const term = document.getElementById('searchCourseModal').value.toLowerCase();
+    const items = document.querySelectorAll('.course-item-option');
+    items.forEach(item => {
+        const nome = item.getAttribute('data-nome');
+        item.style.display = nome.includes(term) ? 'block' : 'none';
+    });
 }
 
 function showNotification(title, message) {

@@ -63,11 +63,16 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
     <title>EPI Guard | Controle de Sala</title>
     <link rel="stylesheet" href="../css/controleSala.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-        <link rel="stylesheet" href="../css/nav.css">
-        <link rel="stylesheet" href="../css/dark.css">
-        <link rel="stylesheet" href="../css/transitions.css">
-        <script src="../js/Dark.js"></script>
-        <script src="../js/transitions.js"></script>
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/dark.css">
+    <link rel="stylesheet" href="../css/transitions.css">
+    <script src="../js/Dark.js"></script>
+    <script src="../js/transitions.js"></script>
+    
+    <script>
+        window.userRole = "<?= $_SESSION['cargo']; ?>";
+        window.isSuperAdmin = <?= $isSuperAdmin ? 'true' : 'false'; ?>;
+    </script>
 
 
   
@@ -144,15 +149,26 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
                             <i data-lucide="book-open" style="width: 18px;"></i>
                             Trocar Curso
                         </button>
-                        <input type="hidden" id="courseFilter" value="">
                     <?php endif; ?>
+                    <input type="hidden" id="courseFilter" value="<?= $isSuperAdmin ? '' : $cursoId; ?>">
                 </div>
 
-                <div class="student-list" id="studentList">
-                    <p style="text-align:center; padding: 40px; color: #64748b; background: white; border-radius: 12px; border: 2px dashed #e2e8f0;">
-                        <i data-lucide="info" style="width: 24px; margin-bottom: 8px;"></i><br>
-                        Selecione um curso no botão acima para visualizar os alunos.
-                    </p>
+                <div class="student-list" id="studentList" style="display: flex; align-items: center; justify-content: center; min-height: 400px; width: 100%;">
+                    <div style="text-align:center; padding: 60px; color: #64748b; background: white; border-radius: 20px; border: 2px dashed #cbd5e1; max-width: 500px; width: 90%; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+                        <?php if ($isSuperAdmin): ?>
+                            <div style="background: #f1f5f9; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                <i data-lucide="book-open" style="width: 32px; height: 32px; color: var(--primary);"></i>
+                            </div>
+                            <h2 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">Aguardando Seleção</h2>
+                            <p style="font-size: 0.95rem; line-height: 1.5; color: #64748b;">
+                                Selecione um curso no botão acima para visualizar os alunos e o monitoramento em tempo real.
+                            </p>
+                        <?php else: ?>
+                            <div style="text-align:center;">
+                                🔄 Carregando alunos do seu curso...
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
             </div>
@@ -180,57 +196,62 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
 
     <!-- Novo Modal de Seleção de Cursos -->
     <div class="modal-overlay" id="courseSelectionModal">
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">
+        <div class="modal-content" style="max-width: 700px; border-radius: 24px; overflow: hidden; padding: 0;">
+            <div class="modal-header" style="background: #ffffff; padding: 24px 30px; border-bottom: 1px solid #f1f5f9;">
                 <div>
-                    <h2 style="margin:0; font-size:18px;">Selecionar Curso</h2>
-                    <small style="color:#666;">Escolha um curso para monitorar</small>
+                    <h2 style="margin:0; font-size:22px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Selecionar Curso</h2>
+                    <p style="color:#64748b; margin: 4px 0 0 0; font-size: 14px;">Escolha a turma que deseja monitorar agora</p>
                 </div>
-                <button class="close-btn" onclick="closeCourseModal()">✕</button>
+                <button class="close-btn" onclick="closeCourseModal()" style="background: #f1f5f9; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
             </div>
 
-            <div style="padding: 20px; max-height: 500px; overflow-y: auto;">
-                <table class="data-table" style="width:100%; border-collapse: collapse;">
+            <div style="padding: 20px 30px 10px;">
+                <div class="search-wrapper" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="search" style="width: 18px; color: #94a3b8;"></i>
+                    <input type="text" id="searchCourseModal" placeholder="Buscar curso ou laboratório..." oninput="filterCoursesModal()" style="background: transparent; border: none; outline: none; width: 100%; font-size: 14px; font-weight: 500;">
+                </div>
+            </div>
+
+            <div style="padding: 10px 30px 30px; max-height: 450px; overflow-y: auto;">
+                <table class="data-table" style="width:100%; border-collapse: separate; border-spacing: 0 10px;">
                     <thead>
-                        <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
-                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Curso</th>
-                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: center;">Alertas</th>
-                            <th style="padding: 14px; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; text-align: right;">Ação</th>
+                        <tr style="text-align: left;">
+                            <th style="padding: 10px 15px; font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Curso / Turma</th>
+                            <th style="padding: 10px 15px; font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center;">Saúde da Turma</th>
+                            <th style="padding: 10px 15px; font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: right;">Ação</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="courseTableBody">
                         <?php foreach ($listaCursos as $c): ?>
-                            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 14px;">
-                                    <div style="font-weight: 600; color: #1e293b;"><?= htmlspecialchars($c['nome']); ?></div>
-                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 2px;"><?= $c['conformidade']; ?>% de Conformidade</div>
-                                    <div style="height: 4px; width: 100%; background: #e2e8f0; border-radius: 10px; overflow: hidden;">
-                                        <?php 
-                                        $barColor = '#10b981'; // Verde default
-                                        if ($c['conformidade'] < 50) $barColor = '#ef4444';
-                                        elseif ($c['conformidade'] < 75) $barColor = '#f97316';
-                                        elseif ($c['conformidade'] < 95) $barColor = '#eab308';
-                                        ?>
-                                        <div style="height: 100%; width: <?= $c['conformidade']; ?>%; background: <?= $barColor; ?>; transition: width 0.5s ease;"></div>
+                            <tr class="course-row-item" data-nome="<?= strtolower(htmlspecialchars($c['nome'])); ?>" style="background: #ffffff; border-radius: 12px; box-shadow: 0 0 0 1px #e2e8f0; transition: all 0.2s;">
+                                <td style="padding: 18px 15px; border-radius: 12px 0 0 12px;">
+                                    <div style="font-weight: 700; color: #1e293b; font-size: 15px;"><?= htmlspecialchars($c['nome']); ?></div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                                        <div style="height: 6px; width: 80px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
+                                            <?php 
+                                            $barColor = '#10b981'; 
+                                            if ($c['conformidade'] < 50) $barColor = '#ef4444';
+                                            elseif ($c['conformidade'] < 75) $barColor = '#f97316';
+                                            elseif ($c['conformidade'] < 95) $barColor = '#eab308';
+                                            ?>
+                                            <div style="height: 100%; width: <?= $c['conformidade']; ?>%; background: <?= $barColor; ?>;"></div>
+                                        </div>
+                                        <span style="font-size: 12px; font-weight: 600; color: #64748b;"><?= $c['conformidade']; ?>%</span>
                                     </div>
                                 </td>
-                                <td style="padding: 14px; text-align: center;">
-                                    <div style="display: flex; gap: 4px; justify-content: center;">
+                                <td style="padding: 18px 15px; text-align: center;">
+                                    <div style="display: flex; gap: 6px; justify-content: center;">
                                         <?php 
                                         $conf = $c['conformidade'];
-                                        // Amarelo (< 95%)
-                                        if ($conf < 95) echo '<i data-lucide="alert-triangle" style="width:16px; color: #eab308;" title="Aviso"></i>';
-                                        // Laranja (< 75%)
-                                        if ($conf < 75) echo '<i data-lucide="alert-circle" style="width:16px; color: #f97316;" title="Alerta"></i>';
-                                        // Vermelho (< 50%)
-                                        if ($conf < 50) echo '<i data-lucide="alert-octagon" style="width:16px; color: #ef4444;" title="Crítico"></i>';
-                                        
-                                        if ($conf >= 95) echo '<i data-lucide="shield-check" style="width:16px; color: #10b981;" title="Seguro"></i>';
+                                        if ($conf < 95) echo '<div title="Alerta Amarelo" style="width:28px; height:28px; background:#fefce8; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="alert-triangle" style="width:16px; color: #ca8a04;"></i></div>';
+                                        if ($conf < 75) echo '<div title="Alerta Laranja" style="width:28px; height:28px; background:#fff7ed; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="alert-circle" style="width:16px; color: #ea580c;"></i></div>';
+                                        if ($conf < 50) echo '<div title="Crítico" style="width:28px; height:28px; background:#fef2f2; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="alert-octagon" style="width:16px; color: #dc2626;"></i></div>';
+                                        if ($conf >= 95) echo '<div title="Excelente" style="width:28px; height:28px; background:#f0fdf4; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="shield-check" style="width:16px; color: #15803d;"></i></div>';
                                         ?>
                                     </div>
                                 </td>
-                                <td style="padding: 14px; text-align: right;">
-                                    <button onclick="selectCourse('<?= $c['id']; ?>', '<?= addslashes($c['nome']); ?>')" class="btn-verify" style="padding: 8px 16px; font-size: 0.75rem; border-radius: 6px;">Selecionar</button>
+                                <td style="padding: 18px 15px; text-align: right; border-radius: 0 12px 12px 0;">
+                                    <button onclick="selectCourse('<?= $c['id']; ?>', '<?= addslashes($c['nome']); ?>')" style="padding: 10px 20px; font-size: 13px; font-weight: 700; background: #f1f5f9; color: #475569; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s;">Visualizar</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -239,6 +260,18 @@ $nomeCurso = $cursoData['nome'] ?? 'Geral';
             </div>
         </div>
     </div>
+
+    <style>
+        .course-row-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(0,0,0,0.1) !important;
+            border-color: var(--primary) !important;
+        }
+        .course-row-item:hover button {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+    </style>
 
     <script src="../js/controleSala.js"></script>
     <script src="../js/notifications.js" defer></script>

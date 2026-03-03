@@ -43,6 +43,8 @@
         echo "Apenas Gmail ou CPF são permitidos.";
     else if ($_GET['erro'] == 'existe')
         echo "Este e-mail/CPF já possui conta.";
+    else if ($_GET['erro'] == 'nao_autorizado')
+        echo "Este Gmail/CPF não está autorizado. Contate o administrador.";
     else
         echo "Erro ao cadastrar. Tente novamente.";
 ?>

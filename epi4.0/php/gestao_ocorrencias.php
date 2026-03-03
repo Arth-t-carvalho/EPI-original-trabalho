@@ -134,6 +134,11 @@ while ($c = $resCursos->fetch_assoc()) $listaCursos[] = $c;
             color: #92400e;
         }
 
+        .status-resolvido {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
         /* Modal active state */
         .modal-verify {
             position: fixed;

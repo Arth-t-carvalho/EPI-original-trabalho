@@ -114,6 +114,12 @@ function renderList(filterText = '') {
         card.onmouseleave = () => card.style.transform = "translateY(0) scale(1)";
         card.onclick = () => openModal(student);
 
+        const signedHtml = (student.signed_id && window.isSuperAdmin) ? `
+            <div class="signed-indicator" onclick="event.stopPropagation(); window.location.href = 'gestao_ocorrencias.php?id=${student.signed_id}'" 
+                 style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(16, 185, 129, 0.9); color: white; font-size: 8.5px; padding: 4px; text-align: center; font-weight: 700; cursor: pointer; backdrop-filter: blur(2px); transition: all 0.2s;">
+                Professor assinou ocorrência dia ${student.signed_date}
+            </div>` : '';
+
         card.innerHTML = `
             <div style="width: 38px; height: 38px; background: #F8FAFC; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #475569; border: 1px solid #E2E8F0; flex-shrink: 0;">
                 ${initials}
@@ -127,6 +133,7 @@ function renderList(filterText = '') {
                 </p>
             </div>
             ${state !== 'Safe' ? `<div style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; padding: 4px 8px; border-radius: 6px;">${icon}</div>` : ''}
+            ${signedHtml}
         `;
 
         listContainer.appendChild(card);
@@ -293,6 +300,15 @@ function openCourseModal() {
 function closeCourseModal() {
     const modal = document.getElementById('courseSelectionModal');
     if (modal) modal.classList.remove('active');
+}
+
+function filterCoursesModal() {
+    const term = document.getElementById('searchCourseModal').value.toLowerCase();
+    const rows = document.querySelectorAll('.course-row-item');
+    rows.forEach(row => {
+        const nome = row.getAttribute('data-nome');
+        row.style.display = nome.includes(term) ? 'table-row' : 'none';
+    });
 }
 
 function selectCourse(id, nome) {

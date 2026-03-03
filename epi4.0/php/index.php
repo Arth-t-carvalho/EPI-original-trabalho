@@ -16,7 +16,16 @@
     </style>
 </head>
 
-<body>
+<body class="intro-active">
+
+    <!-- Overlay de Introdução -->
+    <div id="introOverlay" class="intro-overlay">
+        <div class="intro-panel"></div>
+        <div class="intro-content">
+            <div class="intro-logo">SENAI</div>
+            <div class="intro-subtext">AUTENTICAR SISTEMA</div>
+        </div>
+    </div>
 
     <div class="login-card">
         <!-- Lado Esquerdo: Branding / Hero -->
@@ -102,6 +111,18 @@ endif; ?>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
+
+            // Lógica da Animação de Entrada (Intro)
+            const introOverlay = document.getElementById('introOverlay');
+            if (introOverlay) {
+                setTimeout(() => {
+                    introOverlay.classList.add('fade-out');
+                    document.body.classList.remove('intro-active');
+                    setTimeout(() => {
+                        introOverlay.remove();
+                    }, 1000); // Tempo do fade-out
+                }, 2500); // Tempo de exibição da intro
+            }
 
             // Lógica de mostrar/ocultar senha
             const togglePassword = document.querySelector('#togglePassword');

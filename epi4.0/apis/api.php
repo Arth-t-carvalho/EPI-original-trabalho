@@ -18,11 +18,16 @@ $cursoId = (isset($_SESSION['usuario_id_curso']) && (int)$_SESSION['usuario_id_c
 $cargo = strtolower($_SESSION['cargo'] ?? '');
 $isSuperAdmin = ($cargo === 'super_admin');
 
+// Se for Super Admin, ele pode vir a filtrar por um curso específico vindo via GET
+$isFiltering = ($isSuperAdmin && isset($_GET['course_id']));
+if ($isFiltering && $_GET['course_id'] !== 'all' && (int)$_GET['course_id'] > 0) {
+    $cursoId = (int)$_GET['course_id'];
+}
+
 try {
     $action = $_GET['action'] ?? '';
     $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
     $month = isset($_GET['month']) ? (int)$_GET['month'] : date('n');
-    $date = $_GET['date'] ?? date('Y-m-d');
 
     // Função auxiliar para formatar array de meses
     function formatMonthArray($result)
@@ -37,15 +42,15 @@ try {
         return $arr;
     }
 
-    // 1. GRÁFICOS (BARRAS E ROSCA)
     if ($action === 'charts') {
-        // A) Barras - Capacete (ID 2)
+        // [SQL queries for A, B, C, D use filtering logic]
+        // Exemplo para Capacete:
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE o.epi_id = 2 AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+                WHERE o.epi_id = 2 AND YEAR(o.data_hora) = ? " . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ") .
             " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        if ($isSuperAdmin) {
+        if ($isFiltering && $_GET['course_id'] === 'all') {
             mysqli_stmt_bind_param($stmt, "i", $year);
         } else {
             mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
@@ -56,10 +61,10 @@ try {
         // B) Barras - Óculos (ID 1)
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE o.epi_id = 1 AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+                WHERE o.epi_id = 1 AND YEAR(o.data_hora) = ? " . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ") .
             " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        if ($isSuperAdmin) {
+        if ($isFiltering && $_GET['course_id'] === 'all') {
             mysqli_stmt_bind_param($stmt, "i", $year);
         } else {
             mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
@@ -70,10 +75,10 @@ try {
         // C) Total Geral
         $sql = "SELECT MONTH(o.data_hora) as mes, COUNT(*) as qtd 
                 FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id 
-                WHERE YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+                WHERE YEAR(o.data_hora) = ? " . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ") .
             " GROUP BY mes";
         $stmt = mysqli_prepare($conn, $sql);
-        if ($isSuperAdmin) {
+        if ($isFiltering && $_GET['course_id'] === 'all') {
             mysqli_stmt_bind_param($stmt, "i", $year);
         } else {
             mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
@@ -81,21 +86,20 @@ try {
         mysqli_stmt_execute($stmt);
         $totalArr = formatMonthArray(mysqli_stmt_get_result($stmt));
 
-        // D) Rosca - Por Tipo de EPI
+        // Rosca
         $sql = "SELECT e.nome, COUNT(*) as qtd FROM ocorrencias o 
                 JOIN epis e ON e.id = o.epi_id 
                 JOIN alunos a ON a.id = o.aluno_id
-                WHERE YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
+                WHERE YEAR(o.data_hora) = ? " . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ") .
             " GROUP BY e.nome";
         $stmt = mysqli_prepare($conn, $sql);
-        if ($isSuperAdmin) {
+        if ($isFiltering && $_GET['course_id'] === 'all') {
             mysqli_stmt_bind_param($stmt, "i", $year);
         } else {
             mysqli_stmt_bind_param($stmt, "ii", $year, $cursoId);
         }
         mysqli_stmt_execute($stmt);
         $resDoughnut = mysqli_stmt_get_result($stmt);
-
         $labels = [];
         $dataDoughnut = [];
         while ($d = mysqli_fetch_assoc($resDoughnut)) {
@@ -103,28 +107,71 @@ try {
             $dataDoughnut[] = (int)$d['qtd'];
         }
 
+        // E) Resumo KPI para atualização dinâmica
+        $sqlTotal = "SELECT COUNT(*) as total FROM alunos " . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " WHERE curso_id = ? ");
+        $stmtTotal = mysqli_prepare($conn, $sqlTotal);
+        if (!($isFiltering && $_GET['course_id'] === 'all')) mysqli_stmt_bind_param($stmtTotal, "i", $cursoId);
+        mysqli_stmt_execute($stmtTotal);
+        $totalStudents = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtTotal))['total'] ?? 0;
+
+        $sqlToday = "SELECT COUNT(*) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE o.data_hora >= CURDATE() AND o.data_hora < CURDATE() + INTERVAL 1 DAY" . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ");
+        $stmtToday = mysqli_prepare($conn, $sqlToday);
+        if (!($isFiltering && $_GET['course_id'] === 'all')) mysqli_stmt_bind_param($stmtToday, "i", $cursoId);
+        mysqli_stmt_execute($stmtToday);
+        $todayCount = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtToday))['total'] ?? 0;
+
+        $sqlWeek = "SELECT COUNT(*) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE YEARWEEK(o.data_hora, 1) = YEARWEEK(CURDATE(), 1)" . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ");
+        $stmtWeek = mysqli_prepare($conn, $sqlWeek);
+        if (!($isFiltering && $_GET['course_id'] === 'all')) mysqli_stmt_bind_param($stmtWeek, "i", $cursoId);
+        mysqli_stmt_execute($stmtWeek);
+        $weekCount = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtWeek))['total'] ?? 0;
+
+        $sqlMonth = "SELECT COUNT(*) as total FROM ocorrencias o JOIN alunos a ON a.id = o.aluno_id WHERE MONTH(o.data_hora) = MONTH(CURDATE()) AND YEAR(o.data_hora) = YEAR(CURDATE())" . ($isFiltering && $_GET['course_id'] === 'all' ? "" : " AND a.curso_id = ? ");
+        $stmtMonth = mysqli_prepare($conn, $sqlMonth);
+        if (!($isFiltering && $_GET['course_id'] === 'all')) mysqli_stmt_bind_param($stmtMonth, "i", $cursoId);
+        mysqli_stmt_execute($stmtMonth);
+        $monthCount = mysqli_fetch_assoc(mysqli_stmt_get_result($stmtMonth))['total'] ?? 0;
+
         echo json_encode([
             'bar' => ['capacete' => $capaceteArr, 'oculos' => $oculosArr, 'total' => $totalArr],
-            'doughnut' => ['labels' => $labels, 'data' => $dataDoughnut]
+            'doughnut' => ['labels' => $labels, 'data' => $dataDoughnut],
+            'summary' => [
+                'total_students' => (int)$totalStudents,
+                'today' => (int)$todayCount,
+                'week' => (int)$weekCount,
+                'month' => (int)$monthCount
+            ]
         ]);
         exit;
     }
 
     // 2. CALENDÁRIO
     if ($action === 'calendar') {
-        $sql = "SELECT o.data_hora as full_date, a.nome AS name, e.nome AS `desc`, DATE_FORMAT(o.data_hora, '%H:%i') AS time
-                FROM ocorrencias o
-                JOIN alunos a ON o.aluno_id = a.id
-                LEFT JOIN epis e ON e.id = o.epi_id
-                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ") .
-            " ORDER BY o.data_hora ASC";
+        $isGlobal = ($isSuperAdmin && $_GET['course_id'] === 'all');
 
-        $stmt = mysqli_prepare($conn, $sql);
-        if ($isSuperAdmin) {
+        if ($isGlobal) {
+            // Se for Global, queremos ver os Cursos que tiveram infrações no dia
+            $sql = "SELECT o.data_hora as full_date, c.nome AS name, e.nome AS `desc`, DATE_FORMAT(o.data_hora, '%H:%i') AS time
+                    FROM ocorrencias o
+                    JOIN alunos a ON o.aluno_id = a.id
+                    JOIN cursos c ON a.curso_id = c.id
+                    LEFT JOIN epis e ON e.id = o.epi_id
+                    WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ?
+                    ORDER BY o.data_hora ASC";
+            $stmt = mysqli_prepare($conn, $sql);
             mysqli_stmt_bind_param($stmt, "ii", $month, $year);
         } else {
+            // Se for curso específico ou professor, mantém alunos
+            $sql = "SELECT o.data_hora as full_date, a.nome AS name, e.nome AS `desc`, DATE_FORMAT(o.data_hora, '%H:%i') AS time
+                    FROM ocorrencias o
+                    JOIN alunos a ON o.aluno_id = a.id
+                    LEFT JOIN epis e ON e.id = o.epi_id
+                    WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? AND a.curso_id = ?
+                    ORDER BY o.data_hora ASC";
+            $stmt = mysqli_prepare($conn, $sql);
             mysqli_stmt_bind_param($stmt, "iii", $month, $year, $cursoId);
         }
+
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         echo json_encode(mysqli_fetch_all($res, MYSQLI_ASSOC));
@@ -135,14 +182,22 @@ try {
     if ($action === 'list_all_ocorrencias') {
         $search = $_GET['search'] ?? '';
         $filtroCurso = $_GET['curso_id'] ?? '';
+        $showId = (int)($_GET['show_id'] ?? 0);
 
-        $sql = "SELECT o.id, o.data_hora, a.nome AS aluno_nome, c.nome AS curso_nome, e.nome AS epi_nome
+        $sql = "SELECT o.id, o.data_hora, a.nome AS aluno_nome, c.nome AS curso_nome, e.nome AS epi_nome,
+                       CASE WHEN ac.id IS NOT NULL THEN 'Resolvido' ELSE 'Pendente' END AS status_formatado
                 FROM ocorrencias o
                 JOIN alunos a ON o.aluno_id = a.id
                 LEFT JOIN cursos c ON a.curso_id = c.id
                 LEFT JOIN epis e ON o.epi_id = e.id
                 LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
-                WHERE o.tipo = 0 AND o.oculto = 0 AND ac.id IS NULL"; // Apenas Não Conformidades PENDENTES de ação humana
+                WHERE o.tipo = 0 AND o.oculto = 0 ";
+
+        if ($showId > 0) {
+            $sql .= " AND (ac.id IS NULL OR o.id = ?) ";
+        } else {
+            $sql .= " AND ac.id IS NULL "; // Comportamento padrão: apenas pendentes
+        }
 
         $params = [];
         $types = "";
@@ -166,6 +221,11 @@ try {
         $sql .= " ORDER BY o.data_hora DESC LIMIT 100";
 
         $stmt = mysqli_prepare($conn, $sql);
+        if ($showId > 0) {
+            $params = array_merge([$showId], $params);
+            $types = "i" . $types;
+        }
+
         if (!empty($params)) {
             mysqli_stmt_bind_param($stmt, $types, ...$params);
         }
@@ -180,32 +240,51 @@ try {
     if ($action === 'modal_details') {
         $mesSQL = ($month == 0) ? 1 : $month;
         $epiFilter = $_GET['epi'] ?? '';
+        $isGlobal = ($isSuperAdmin && (!isset($_GET['course_id']) || $_GET['course_id'] === 'all'));
 
-        $sql = "SELECT o.id AS ocorrencia_id, DATE_FORMAT(o.data_hora, '%d/%m/%Y') AS data, a.nome AS aluno, a.id AS aluno_id, c.nome AS curso,
-                       COALESCE(e.nome, 'Não informado') AS epis, DATE_FORMAT(o.data_hora, '%H:%i') AS hora,
-                       CASE WHEN ac.id IS NOT NULL THEN 'Resolvido' ELSE 'Pendente' END AS status_formatado
-                FROM ocorrencias o
-                JOIN alunos a ON a.id = o.aluno_id
-                LEFT JOIN cursos c ON c.id = a.curso_id
-                LEFT JOIN epis e ON e.id = o.epi_id
-                LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
-                WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? " . ($isSuperAdmin ? "" : " AND a.curso_id = ? ");
+        if ($isGlobal) {
+            // Se for Global, queremos o RESUMO POR CURSO
+            $sql = "SELECT 
+                        c.id AS curso_id,
+                        c.nome AS curso_nome,
+                        COUNT(o.id) AS total_infracoes,
+                        (SELECT COUNT(*) FROM alunos a2 WHERE a2.curso_id = c.id) AS total_alunos,
+                        (SELECT COUNT(DISTINCT o2.aluno_id) 
+                         FROM ocorrencias o2 
+                         JOIN alunos a3 ON a3.id = o2.aluno_id 
+                         WHERE a3.curso_id = c.id AND MONTH(o2.data_hora) = ? AND YEAR(o2.data_hora) = ?) AS alunos_com_infracao
+                    FROM cursos c
+                    LEFT JOIN alunos a ON a.curso_id = c.id
+                    LEFT JOIN ocorrencias o ON o.aluno_id = a.id AND MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ?
+                    " . (!empty($epiFilter) ? " WHERE o.id IS NOT NULL AND (SELECT e.nome FROM epis e WHERE e.id = o.epi_id) = ? " : "") . "
+                    GROUP BY c.id
+                    HAVING total_infracoes > 0
+                    ORDER BY total_infracoes DESC";
 
-        if (!empty($epiFilter)) {
-            $sql .= " AND e.nome = ? ";
-        }
-
-        $sql .= " GROUP BY o.id ORDER BY o.data_hora DESC";
-
-        $stmt = mysqli_prepare($conn, $sql);
-
-        if ($isSuperAdmin) {
+            $stmt = mysqli_prepare($conn, $sql);
             if (!empty($epiFilter)) {
-                mysqli_stmt_bind_param($stmt, "iis", $mesSQL, $year, $epiFilter);
+                mysqli_stmt_bind_param($stmt, "iiiis", $mesSQL, $year, $mesSQL, $year, $epiFilter);
             } else {
-                mysqli_stmt_bind_param($stmt, "ii", $mesSQL, $year);
+                mysqli_stmt_bind_param($stmt, "iiii", $mesSQL, $year, $mesSQL, $year);
             }
         } else {
+            // Se for curso específico, mantém o detalhamento por ALUNO
+            $sql = "SELECT o.id AS ocorrencia_id, DATE_FORMAT(o.data_hora, '%d/%m/%Y') AS data, a.nome AS aluno, a.id AS aluno_id, c.nome AS curso,
+                           COALESCE(e.nome, 'Não informado') AS epis, DATE_FORMAT(o.data_hora, '%H:%i') AS hora,
+                           CASE WHEN ac.id IS NOT NULL THEN 'Resolvido' ELSE 'Pendente' END AS status_formatado
+                    FROM ocorrencias o
+                    JOIN alunos a ON a.id = o.aluno_id
+                    LEFT JOIN cursos c ON c.id = a.curso_id
+                    LEFT JOIN epis e ON e.id = o.epi_id
+                    LEFT JOIN acoes_ocorrencia ac ON ac.ocorrencia_id = o.id
+                    WHERE MONTH(o.data_hora) = ? AND YEAR(o.data_hora) = ? AND a.curso_id = ? ";
+
+            if (!empty($epiFilter)) {
+                $sql .= " AND e.nome = ? ";
+            }
+
+            $sql .= " GROUP BY o.id ORDER BY o.data_hora DESC";
+            $stmt = mysqli_prepare($conn, $sql);
             if (!empty($epiFilter)) {
                 mysqli_stmt_bind_param($stmt, "iiis", $mesSQL, $year, $cursoId, $epiFilter);
             } else {
@@ -307,7 +386,7 @@ try {
                     if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
                         $ext = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
                         $fileName = "evidência_" . $ocorrenciaId . "_" . time() . "_" . $key . "." . $ext;
-                        
+
                         if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
                             $caminho = 'uploads/evidencias/' . $fileName;
                             $sqlEv = "INSERT INTO evidencias (ocorrencia_id, imagem) VALUES (?, ?)";
@@ -345,6 +424,26 @@ try {
         mysqli_stmt_bind_param($stmt, "issi", $ocorrenciaId, $tipo, $observacao, $usuarioId);
 
         if (mysqli_stmt_execute($stmt)) {
+            // Se houver fotos, processa elas também
+            if (isset($_FILES['fotos'])) {
+                $uploadDir = __DIR__ . '/../uploads/evidencias/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+                foreach ($_FILES['fotos']['tmp_name'] as $key => $tmpName) {
+                    if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                        $ext = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
+                        $fileName = "evidência_" . $ocorrenciaId . "_" . time() . "_" . $key . "." . $ext;
+
+                        if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                            $caminho = 'uploads/evidencias/' . $fileName;
+                            $sqlEv = "INSERT INTO evidencias (ocorrencia_id, imagem) VALUES (?, ?)";
+                            $stmtEv = mysqli_prepare($conn, $sqlEv);
+                            mysqli_stmt_bind_param($stmtEv, "is", $ocorrenciaId, $caminho);
+                            mysqli_stmt_execute($stmtEv);
+                        }
+                    }
+                }
+            }
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'error' => 'Erro ao salvar: ' . mysqli_error($conn)]);

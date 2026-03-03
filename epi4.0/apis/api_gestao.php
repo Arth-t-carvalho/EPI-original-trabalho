@@ -125,31 +125,40 @@ try {
         exit;
     }
 
-    // SALVAR PROFESSOR
+    // SALVAR PROFESSOR (AUTORIZAÇÃO)
     if ($action === 'save_professor') {
         $id = $_POST['id'] ?? '';
-        $nome = $_POST['nome'] ?? '';
         $usuario = $_POST['usuario'] ?? '';
-        $senha = $_POST['senha'] ?? '';
-        $cargo = $_POST['cargo'] ?? 'instructor';
+        $cargo = $_POST['cargo'] ?? 'instrutor';
         $id_curso = $_POST['id_curso'] ?? null;
 
+        if (empty($usuario)) {
+            echo json_encode(['status' => 'error', 'message' => 'O Gmail/CPF é obrigatório para autorização.']);
+            exit;
+        }
+
         if (empty($id)) {
-            $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+            // Verifica se já existe
+            $check = "SELECT id FROM usuarios WHERE usuario = ? LIMIT 1";
+            $stmtCheck = mysqli_prepare($conn, $check);
+            mysqli_stmt_bind_param($stmtCheck, "s", $usuario);
+            mysqli_stmt_execute($stmtCheck);
+            if (mysqli_num_rows(mysqli_stmt_get_result($stmtCheck)) > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este Gmail/CPF já está autorizado ou cadastrado.']);
+                exit;
+            }
+
+            // INSERT (Pre-Autorização)
+            $nomePlaceholder = 'Aguardando Cadastro';
+            $senhaVazia = ''; // Indica pendência
             $sql = "INSERT INTO usuarios (nome, usuario, senha, cargo, id_curso) VALUES (?, ?, ?, ?, ?)";
             $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "ssssi", $nome, $usuario, $senhaHash, $cargo, $id_curso);
+            mysqli_stmt_bind_param($stmt, "ssssi", $nomePlaceholder, $usuario, $senhaVazia, $cargo, $id_curso);
         } else {
-            if (!empty($senha)) {
-                $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
-                $sql = "UPDATE usuarios SET nome = ?, usuario = ?, senha = ?, cargo = ?, id_curso = ? WHERE id = ?";
-                $stmt = mysqli_prepare($conn, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssii", $nome, $usuario, $senhaHash, $cargo, $id_curso, $id);
-            } else {
-                $sql = "UPDATE usuarios SET nome = ?, usuario = ?, cargo = ?, id_curso = ? WHERE id = ?";
-                $stmt = mysqli_prepare($conn, $sql);
-                mysqli_stmt_bind_param($stmt, "ssiii", $nome, $usuario, $cargo, $id_curso, $id);
-            }
+            // UPDATE (Apenas dados de autorização)
+            $sql = "UPDATE usuarios SET usuario = ?, cargo = ?, id_curso = ? WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "ssii", $usuario, $cargo, $id_curso, $id);
         }
 
         if (mysqli_stmt_execute($stmt)) {
@@ -164,6 +173,72 @@ try {
     if ($action === 'delete_professor') {
         $id = $_POST['id'] ?? 0;
         $sql = "DELETE FROM usuarios WHERE id = ? AND cargo != 'super_admin'";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
+        }
+        exit;
+    }
+
+    // 4. LISTAR CURSOS
+    if ($action === 'list_cursos') {
+        $search = $_GET['search'] ?? '';
+        $sql = "SELECT id, nome, vagas FROM cursos WHERE nome LIKE ? ORDER BY nome ASC";
+        $stmt = mysqli_prepare($conn, $sql);
+        $searchParam = "%$search%";
+        mysqli_stmt_bind_param($stmt, "s", $searchParam);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        echo json_encode(mysqli_fetch_all($res, MYSQLI_ASSOC));
+        exit;
+    }
+
+    // 5. SALVAR CURSO
+    if ($action === 'save_curso') {
+        $id = $_POST['id'] ?? '';
+        $nome = $_POST['nome'] ?? '';
+        $vagas = $_POST['vagas'] ?? 0;
+
+        if (empty($nome)) {
+            echo json_encode(['status' => 'error', 'message' => 'Nome do curso é obrigatório.']);
+            exit;
+        }
+
+        if (empty($id)) {
+            $sql = "INSERT INTO cursos (nome, vagas) VALUES (?, ?)";
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "si", $nome, $vagas);
+        } else {
+            $sql = "UPDATE cursos SET nome = ?, vagas = ? WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $sql);
+            mysqli_stmt_bind_param($stmt, "sii", $nome, $vagas, $id);
+        }
+
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(['status' => 'success']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => mysqli_error($conn)]);
+        }
+        exit;
+    }
+
+    // 6. EXCLUIR CURSO
+    if ($action === 'delete_curso') {
+        $id = $_POST['id'] ?? 0;
+        // Verifica se há dependências
+        $check = "SELECT id FROM alunos WHERE curso_id = ? LIMIT 1";
+        $stmtC = mysqli_prepare($conn, $check);
+        mysqli_stmt_bind_param($stmtC, "i", $id);
+        mysqli_stmt_execute($stmtC);
+        if (mysqli_num_rows(mysqli_stmt_get_result($stmtC)) > 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Não é possível excluir: existem alunos vinculados a este curso.']);
+            exit;
+        }
+
+        $sql = "DELETE FROM cursos WHERE id = ?";
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, "i", $id);
         if (mysqli_stmt_execute($stmt)) {

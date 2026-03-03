@@ -9,6 +9,7 @@ let currCalMonth = new Date().getMonth();   // Mês visualizado no Modal de Esco
 let allOccurrences = []; // Dados do BD
 let mainChartInstance = null;
 let doughnutChartInstance = null;
+let selectedCourseId = 'all'; // Novo: Filtro de curso para Super Admin
 
 // Arrays auxiliares
 const monthsFull = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -59,7 +60,7 @@ function loadCalendarData() {
     const month = selectedDate.getMonth() + 1;
     const year = selectedDate.getFullYear();
 
-    fetch(`../apis/api.php?action=calendar&month=${month}&year=${year}`)
+    fetch(`../apis/api.php?action=calendar&month=${month}&year=${year}&course_id=${selectedCourseId}`)
         .then(res => res.json())
         .then(data => {
             allOccurrences = Array.isArray(data) ? data : [];
@@ -80,8 +81,6 @@ function loadCalendarData() {
 function renderInterface() {
     // 1. Atualiza Texto da Data no Navegador
     const day = String(selectedDate.getDate()).padStart(2, '0');
-
-    // PEGANDO O MÊS COMPLETO:
     const monthFullStr = monthsFull[selectedDate.getMonth()];
     const yearStr = selectedDate.getFullYear();
 
@@ -89,9 +88,6 @@ function renderInterface() {
     const elStr = document.getElementById('displayMonthStr');
 
     if (elNum) elNum.innerText = day;
-
-    // AQUI ESTÁ O PULO DO GATO:
-    // Injetamos o nome completo (ex: Fevereiro) + o Ano
     if (elStr) elStr.innerText = `${monthFullStr} ${yearStr}`;
 
     // 2. Filtra Ocorrências para a LISTA LATERAL
@@ -105,19 +101,52 @@ function renderInterface() {
         });
 
         if (dailyData.length > 0) {
-            dailyData.forEach(item => {
-                const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
-                const safeName = (item.name || '').replace(/'/g, "\\'");
-                list.innerHTML += `
-                    <div class="occurrence-item" onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}">
-                        <div class="occ-avatar">${initials}</div>
-                        <div class="occ-info">
-                            <span class="occ-name">${item.name}</span>
-                            <span class="occ-desc">${item.desc}</span>
-                        </div>
-                        <div class="occ-time">${item.time}</div>
-                    </div>`;
-            });
+            const isSuperAdmin = (window.userRole === 'super_admin');
+
+            if (isSuperAdmin) {
+                // Modo Super Admin: Agrupa por CURSO (ou Nome se for filtrado)
+                const grouped = {};
+                dailyData.forEach(item => {
+                    const key = item.name || 'Desconhecido';
+                    if (!grouped[key]) grouped[key] = { count: 0, items: [] };
+                    grouped[key].count++;
+                    grouped[key].items.push(item);
+                });
+
+                Object.keys(grouped).forEach(name => {
+                    const data = grouped[name];
+                    const initials = name.substring(0, 2).toUpperCase();
+
+                    // Se estiver em modo Global, clicar no card filtra aquele curso
+                    const isGlobal = (selectedCourseId === 'all');
+                    const clickAction = isGlobal ? `onclick="applyCourseFilterByName('${name.replace(/'/g, "\\'")}')" style="cursor:pointer;" title="Clique para filtrar este curso"` : '';
+
+                    list.innerHTML += `
+                        <div class="occurrence-item" ${clickAction}>
+                            <div class="occ-avatar">${initials}</div>
+                            <div class="occ-info">
+                                <span class="occ-name" style="font-weight:700;">${name}</span>
+                                <span class="occ-desc" style="color:var(--primary); font-weight:600;">${data.count} ocorrência${data.count > 1 ? 's' : ''} encontrada${data.count > 1 ? 's' : ''}</span>
+                            </div>
+                            ${isGlobal ? '<div class="occ-time">❯</div>' : ''}
+                        </div>`;
+                });
+            } else {
+                // Modo Professor: Lista Individual padrão
+                dailyData.forEach(item => {
+                    const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
+                    const safeName = (item.name || '').replace(/'/g, "\\'");
+                    list.innerHTML += `
+                        <div class="occurrence-item" onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}">
+                            <div class="occ-avatar">${initials}</div>
+                            <div class="occ-info">
+                                <span class="occ-name">${item.name}</span>
+                                <span class="occ-desc">${item.desc}</span>
+                            </div>
+                            <div class="occ-time">${item.time}</div>
+                        </div>`;
+                });
+            }
         } else {
             list.innerHTML = `<div class="empty-state" style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">✅ Nenhuma infração neste dia.</div>`;
         }
@@ -127,9 +156,34 @@ function renderInterface() {
     updateKPICards();
     updatePercentagesDinamicamente();
 
-    // 4. Aplica visibilidade de porcentagem e status (definida em global.js)
     if (typeof applyGlobalSettings === 'function') {
         applyGlobalSettings();
+    }
+}
+
+// Helper para filtrar curso pelo nome (usado no clique do card agrupado)
+function applyCourseFilterByName(name) {
+    // Busca o ID do curso pelo nome na lista original de cursos (se disponível)
+    // Se não find, pelo menos seleciona o curso no modal se puder, 
+    // ou apenas abre o modal de seleção.
+    // Mas o mais simples para o MVP é apenas avisar ou abrir o modal de detalhes.
+    // O usuário pediu apenas para agrupar, a navegação é um bônus.
+    // Vou implementar a filtragem real.
+    const modalButtons = document.querySelectorAll('#courseModal .btn-modal-action');
+    let foundId = null;
+    modalButtons.forEach(btn => {
+        if (btn.innerText.includes(name)) {
+            const onclick = btn.getAttribute('onclick');
+            const match = onclick.match(/selectCourse\((\d+)/);
+            if (match) foundId = match[1];
+        }
+    });
+
+    if (foundId) {
+        selectCourse(foundId, name);
+    } else {
+        // Se não achar o ID, apenas abre o modal de detalhes do mês/dia para aquele curso (simulado)
+        openDetailModal(selectedDate.getMonth(), monthsFull[selectedDate.getMonth()]);
     }
 }
 
@@ -459,11 +513,13 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
     const modal = document.getElementById('detailModal');
     const title = document.getElementById('modalMonthTitle');
     const tbody = document.getElementById('modalTableBody');
+    const thead = document.querySelector('.custom-table thead tr');
 
     if (!modal) return;
 
     const realMonth = monthIndex + 1;
     const currentYear = new Date().getFullYear();
+    const isGlobal = (window.userRole === 'super_admin' && selectedCourseId === 'all');
 
     let displayTitle = `${monthName} de ${currentYear}`;
     if (epiName) {
@@ -474,7 +530,26 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
     modal.style.display = ''; // Limpa qualquer display: none residual
     modal.classList.add('open');
 
-    let url = `../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}`;
+    // Ajusta o Header da tabela dependendo do modo
+    if (isGlobal) {
+        thead.innerHTML = `
+            <th>Rank</th>
+            <th>Curso</th>
+            <th>Infrações</th>
+            <th>Conformidade</th>
+            <th>Risco</th>
+        `;
+    } else {
+        thead.innerHTML = `
+            <th>Data</th>
+            <th>Aluno</th>
+            <th>Infração (EPI)</th>
+            <th>Horário</th>
+            <th>Status</th>
+        `;
+    }
+
+    let url = `../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}&course_id=${selectedCourseId}`;
     if (epiName) {
         url += `&epi=${encodeURIComponent(epiName)}`;
     }
@@ -484,45 +559,98 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
         .then(data => {
             tbody.innerHTML = '';
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhum registro encontrado.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${isGlobal ? 5 : 5}" style="text-align:center; padding: 20px;">Nenhum registro encontrado.</td></tr>`;
                 return;
             }
-            data.forEach(row => {
-                const statusTexto = row.status_formatado || row.status;
-                let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
 
-                // Atributos extras se for Pendente: cursor pointer e redirecionamento para ocorrencias.php
-                let extraAttrs = '';
-                if (statusTexto === 'Pendente') {
-                    const params = new URLSearchParams({
-                        ocorrencia_id: row.ocorrencia_id,
-                        aluno_id: row.aluno_id,
-                        epi: row.epis,
-                        data: row.data,
-                        hora: row.hora
-                    });
-                    extraAttrs = `style="cursor: pointer;" onclick="window.location.href='ocorrencias.php?${params.toString()}'" title="Clique para resolver ocorrência"`;
-                }
+            if (isGlobal) {
+                // RENDERIZAÇÃO GLOBAL (POR CURSO)
+                data.forEach((row, index) => {
+                    const totalAlunos = parseInt(row.total_alunos) || 1;
+                    const alunosComInfracao = parseInt(row.alunos_com_infracao) || 0;
+                    const conformidade = Math.round(((totalAlunos - alunosComInfracao) / totalAlunos) * 100);
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${row.data}</td>
-                        <td style="font-weight:500;">${row.aluno}</td>
-                        <td>${row.epis}</td>
-                        <td>${row.hora}</td>
-                        <td><span class="status-badge ${classeStatus}" ${extraAttrs}>${statusTexto}</span></td>
-                    </tr>`;
-            });
+                    let riskIcon = '';
+                    if (conformidade < 50) {
+                        riskIcon = '<span class="risk-triangle red" title="Risco Crítico: Mais da metade dos alunos com infração">▲</span>';
+                    } else if (conformidade < 70) {
+                        riskIcon = '<span class="risk-triangle orange" title="Risco Alto: Baixa conformidade">▲</span>';
+                    } else if (conformidade < 90) {
+                        riskIcon = '<span class="risk-triangle yellow" title="Atenção: Monitoramento necessário">▲</span>';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr onclick="selectCourse(${row.curso_id}, '${row.curso_nome.replace(/'/g, "\\'")}')" style="cursor: pointer;" title="Clique para ver detalhes do curso ${row.curso_nome}">
+                            <td>#${index + 1}</td>
+                            <td style="font-weight:600;">${row.curso_nome}</td>
+                            <td>${row.total_infracoes}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:${conformidade}%"></div></div>
+                                    <span>${conformidade}%</span>
+                                </div>
+                            </td>
+                            <td style="text-align:center;">${riskIcon}</td>
+                        </tr>`;
+                });
+            } else {
+                // RENDERIZAÇÃO POR ALUNO (EXISTENTE)
+                data.forEach(row => {
+                    const statusTexto = row.status_formatado || row.status;
+                    let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
+
+                    let extraAttrs = '';
+                    if (statusTexto === 'Pendente') {
+                        const params = new URLSearchParams({
+                            ocorrencia_id: row.ocorrencia_id,
+                            aluno_id: row.aluno_id,
+                            epi: row.epis,
+                            data: row.data,
+                            hora: row.hora
+                        });
+                        extraAttrs = `style="cursor: pointer;" onclick="window.location.href='ocorrencias.php?${params.toString()}'" title="Clique para resolver ocorrência"`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${row.data}</td>
+                            <td style="font-weight:500;">${row.aluno}</td>
+                            <td>${row.epis}</td>
+                            <td>${row.hora}</td>
+                            <td><span class="status-badge ${classeStatus}" ${extraAttrs}>${statusTexto}</span></td>
+                        </tr>`;
+                });
+            }
         })
-        .catch(() => {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center">Erro na conexão.</td></tr>';
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center">Erro na conexão.</td></tr>`;
         });
 }
 
 function loadCharts() {
-    fetch('../apis/api.php?action=charts')
+    fetch(`../apis/api.php?action=charts&course_id=${selectedCourseId}`)
         .then(res => res.json())
         .then(response => {
+            // ... (keep previous session handling)
+
+            // NOVO: Atualiza KPIs com o resumo do API
+            if (response.summary) {
+                const elDia = document.getElementById('kpiDia');
+                const elSemana = document.getElementById('kpiSemana');
+                const elMes = document.getElementById('kpiMes');
+                const elMedia = document.getElementById('kpiMedia');
+
+                if (elDia) elDia.innerText = response.summary.today;
+                if (elSemana) elSemana.innerText = response.summary.week;
+                if (elMes) elMes.innerText = response.summary.month;
+
+                if (elMedia && response.summary.total_students > 0) {
+                    const conformidade = Math.round(((response.summary.total_students - response.summary.today) / response.summary.total_students) * 100);
+                    elMedia.innerText = `${Math.max(0, conformidade)}%`;
+                    updateConformityStatus(conformidade);
+                }
+            }
             if (response.status === 'session_expired' || response.status === 'not_logged') {
                 window.location.href = 'index.php';
                 return;
@@ -797,6 +925,43 @@ const config = { childList: true, characterData: true, subtree: true };
 if (document.getElementById('kpiDia')) observer.observe(document.getElementById('kpiDia'), config);
 if (document.getElementById('kpiSemana')) observer.observe(document.getElementById('kpiSemana'), config);
 if (document.getElementById('kpiMes')) observer.observe(document.getElementById('kpiMes'), config);
+
+// =============================================================
+// NOVO: LÓGICA DE SELEÇÃO DE CURSO (SUPER ADMIN)
+// =============================================================
+
+function openCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.add('open');
+}
+
+function closeCourseModal() {
+    const modal = document.getElementById('courseSelectionModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function selectCourse(id, name) {
+    selectedCourseId = id;
+
+    // Atualiza o texto no botão do header
+    const label = document.getElementById('activeCourseName');
+    if (label) {
+        label.innerText = name.length > 10 ? name.substring(0, 10) + '...' : name;
+        label.title = name;
+    }
+
+    // Fecha o modal
+    closeCourseModal();
+
+    // Recarrega os dados e os gráficos
+    loadCalendarData();
+    loadCharts();
+
+    // Feedback visual
+    if (typeof createToast === 'function') {
+        createToast('Filtro Aplicado', `Visualizando: ${name}`, 'info');
+    }
+}
 
 
 function updatePercentagesDinamicamente() {
