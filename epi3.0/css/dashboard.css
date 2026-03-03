@@ -330,6 +330,112 @@ body {
     align-items: center;
 }
 
+.btn-filter-chart {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--secondary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-filter-chart:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(227, 6, 19, 0.15);
+}
+
+.btn-filter-chart svg {
+    transition: transform 0.3s ease;
+}
+
+.btn-filter-chart:hover svg {
+    transform: rotate(15deg);
+}
+
+/* Dark Mode Suport */
+[data-theme="dark"] .btn-filter-chart {
+    background: #1f2937;
+    color: #f9fafb;
+    border-color: #374151;
+}
+
+[data-theme="dark"] .btn-filter-chart:hover {
+    background: rgba(227, 6, 19, 0.2);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.active-course-name {
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#courseSearchInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+[data-theme="dark"] #courseSearchInput {
+    background: #111827;
+    border-color: #374151;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] #courseSearchInput::placeholder {
+    color: #64748b;
+}
+
+/* Ícones de Risco (Triângulos) */
+.risk-triangle {
+    font-size: 18px;
+    font-weight: bold;
+    cursor: help;
+}
+
+.risk-triangle.red {
+    color: #ef4444;
+}
+
+.risk-triangle.orange {
+    color: #f97316;
+}
+
+.risk-triangle.yellow {
+    color: #eab308;
+}
+
+/* Mini Progress Bar para Conformidade */
+.mini-progress-bar {
+    width: 60px;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .mini-progress-bar {
+    background: #374151;
+}
+
 .section-title {
     font-size: 16px;
     font-weight: 700;

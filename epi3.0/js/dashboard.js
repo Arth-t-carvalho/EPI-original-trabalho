@@ -109,8 +109,13 @@ function renderInterface() {
             dailyData.forEach(item => {
                 const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
                 const safeName = (item.name || '').replace(/'/g, "\\'");
+
+                // Determina se o clique deve levar à página de infrações (apenas se for aluno)
+                const isGlobalSuperAdmin = (window.userRole === 'super_admin' && selectedCourseId === 'all');
+                const clickAction = isGlobalSuperAdmin ? '' : `onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}"`;
+
                 list.innerHTML += `
-                    <div class="occurrence-item" onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}">
+                    <div class="occurrence-item" ${clickAction}>
                         <div class="occ-avatar">${initials}</div>
                         <div class="occ-info">
                             <span class="occ-name">${item.name}</span>
@@ -460,11 +465,13 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
     const modal = document.getElementById('detailModal');
     const title = document.getElementById('modalMonthTitle');
     const tbody = document.getElementById('modalTableBody');
+    const thead = document.querySelector('.custom-table thead tr');
 
     if (!modal) return;
 
     const realMonth = monthIndex + 1;
     const currentYear = new Date().getFullYear();
+    const isGlobal = (window.userRole === 'super_admin' && selectedCourseId === 'all');
 
     let displayTitle = `${monthName} de ${currentYear}`;
     if (epiName) {
@@ -475,7 +482,26 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
     modal.style.display = ''; // Limpa qualquer display: none residual
     modal.classList.add('open');
 
-    let url = `../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}`;
+    // Ajusta o Header da tabela dependendo do modo
+    if (isGlobal) {
+        thead.innerHTML = `
+            <th>Rank</th>
+            <th>Curso</th>
+            <th>Infrações</th>
+            <th>Conformidade</th>
+            <th>Risco</th>
+        `;
+    } else {
+        thead.innerHTML = `
+            <th>Data</th>
+            <th>Aluno</th>
+            <th>Infração (EPI)</th>
+            <th>Horário</th>
+            <th>Status</th>
+        `;
+    }
+
+    let url = `../apis/api.php?action=modal_details&month=${realMonth}&year=${currentYear}&course_id=${selectedCourseId}`;
     if (epiName) {
         url += `&epi=${encodeURIComponent(epiName)}`;
     }
@@ -485,38 +511,72 @@ function openDetailModal(monthIndex, monthName, epiName = '') {
         .then(data => {
             tbody.innerHTML = '';
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhum registro encontrado.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${isGlobal ? 5 : 5}" style="text-align:center; padding: 20px;">Nenhum registro encontrado.</td></tr>`;
                 return;
             }
-            data.forEach(row => {
-                const statusTexto = row.status_formatado || row.status;
-                let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
 
-                // Atributos extras se for Pendente: cursor pointer e redirecionamento para ocorrencias.php
-                let extraAttrs = '';
-                if (statusTexto === 'Pendente') {
-                    const params = new URLSearchParams({
-                        ocorrencia_id: row.ocorrencia_id,
-                        aluno_id: row.aluno_id,
-                        epi: row.epis,
-                        data: row.data,
-                        hora: row.hora
-                    });
-                    extraAttrs = `style="cursor: pointer;" onclick="window.location.href='ocorrencias.php?${params.toString()}'" title="Clique para resolver ocorrência"`;
-                }
+            if (isGlobal) {
+                // RENDERIZAÇÃO GLOBAL (POR CURSO)
+                data.forEach((row, index) => {
+                    const totalAlunos = parseInt(row.total_alunos) || 1;
+                    const alunosComInfracao = parseInt(row.alunos_com_infracao) || 0;
+                    const conformidade = Math.round(((totalAlunos - alunosComInfracao) / totalAlunos) * 100);
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${row.data}</td>
-                        <td style="font-weight:500;">${row.aluno}</td>
-                        <td>${row.epis}</td>
-                        <td>${row.hora}</td>
-                        <td><span class="status-badge ${classeStatus}" ${extraAttrs}>${statusTexto}</span></td>
-                    </tr>`;
-            });
+                    let riskIcon = '';
+                    if (conformidade < 50) {
+                        riskIcon = '<span class="risk-triangle red" title="Risco Crítico: Mais da metade dos alunos com infração">▲</span>';
+                    } else if (conformidade < 70) {
+                        riskIcon = '<span class="risk-triangle orange" title="Risco Alto: Baixa conformidade">▲</span>';
+                    } else if (conformidade < 90) {
+                        riskIcon = '<span class="risk-triangle yellow" title="Atenção: Monitoramento necessário">▲</span>';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr onclick="selectCourse(${row.curso_id}, '${row.curso_nome.replace(/'/g, "\\'")}')" style="cursor: pointer;" title="Clique para ver detalhes do curso ${row.curso_nome}">
+                            <td>#${index + 1}</td>
+                            <td style="font-weight:600;">${row.curso_nome}</td>
+                            <td>${row.total_infracoes}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div class="mini-progress-bar"><div class="mini-progress-fill" style="width:${conformidade}%"></div></div>
+                                    <span>${conformidade}%</span>
+                                </div>
+                            </td>
+                            <td style="text-align:center;">${riskIcon}</td>
+                        </tr>`;
+                });
+            } else {
+                // RENDERIZAÇÃO POR ALUNO (EXISTENTE)
+                data.forEach(row => {
+                    const statusTexto = row.status_formatado || row.status;
+                    let classeStatus = statusTexto === 'Pendente' ? 'status-pendente' : 'status-resolvido';
+
+                    let extraAttrs = '';
+                    if (statusTexto === 'Pendente') {
+                        const params = new URLSearchParams({
+                            ocorrencia_id: row.ocorrencia_id,
+                            aluno_id: row.aluno_id,
+                            epi: row.epis,
+                            data: row.data,
+                            hora: row.hora
+                        });
+                        extraAttrs = `style="cursor: pointer;" onclick="window.location.href='ocorrencias.php?${params.toString()}'" title="Clique para resolver ocorrência"`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${row.data}</td>
+                            <td style="font-weight:500;">${row.aluno}</td>
+                            <td>${row.epis}</td>
+                            <td>${row.hora}</td>
+                            <td><span class="status-badge ${classeStatus}" ${extraAttrs}>${statusTexto}</span></td>
+                        </tr>`;
+                });
+            }
         })
-        .catch(() => {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center">Erro na conexão.</td></tr>';
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center">Erro na conexão.</td></tr>`;
         });
 }
 
