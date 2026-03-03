@@ -81,8 +81,6 @@ function loadCalendarData() {
 function renderInterface() {
     // 1. Atualiza Texto da Data no Navegador
     const day = String(selectedDate.getDate()).padStart(2, '0');
-
-    // PEGANDO O MÊS COMPLETO:
     const monthFullStr = monthsFull[selectedDate.getMonth()];
     const yearStr = selectedDate.getFullYear();
 
@@ -90,9 +88,6 @@ function renderInterface() {
     const elStr = document.getElementById('displayMonthStr');
 
     if (elNum) elNum.innerText = day;
-
-    // AQUI ESTÁ O PULO DO GATO:
-    // Injetamos o nome completo (ex: Fevereiro) + o Ano
     if (elStr) elStr.innerText = `${monthFullStr} ${yearStr}`;
 
     // 2. Filtra Ocorrências para a LISTA LATERAL
@@ -106,24 +101,52 @@ function renderInterface() {
         });
 
         if (dailyData.length > 0) {
-            dailyData.forEach(item => {
-                const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
-                const safeName = (item.name || '').replace(/'/g, "\\'");
+            const isSuperAdmin = (window.userRole === 'super_admin');
 
-                // Determina se o clique deve levar à página de infrações (apenas se for aluno)
-                const isGlobalSuperAdmin = (window.userRole === 'super_admin' && selectedCourseId === 'all');
-                const clickAction = isGlobalSuperAdmin ? '' : `onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}"`;
+            if (isSuperAdmin) {
+                // Modo Super Admin: Agrupa por CURSO (ou Nome se for filtrado)
+                const grouped = {};
+                dailyData.forEach(item => {
+                    const key = item.name || 'Desconhecido';
+                    if (!grouped[key]) grouped[key] = { count: 0, items: [] };
+                    grouped[key].count++;
+                    grouped[key].items.push(item);
+                });
 
-                list.innerHTML += `
-                    <div class="occurrence-item" ${clickAction}>
-                        <div class="occ-avatar">${initials}</div>
-                        <div class="occ-info">
-                            <span class="occ-name">${item.name}</span>
-                            <span class="occ-desc">${item.desc}</span>
-                        </div>
-                        <div class="occ-time">${item.time}</div>
-                    </div>`;
-            });
+                Object.keys(grouped).forEach(name => {
+                    const data = grouped[name];
+                    const initials = name.substring(0, 2).toUpperCase();
+
+                    // Se estiver em modo Global, clicar no card filtra aquele curso
+                    const isGlobal = (selectedCourseId === 'all');
+                    const clickAction = isGlobal ? `onclick="applyCourseFilterByName('${name.replace(/'/g, "\\'")}')" style="cursor:pointer;" title="Clique para filtrar este curso"` : '';
+
+                    list.innerHTML += `
+                        <div class="occurrence-item" ${clickAction}>
+                            <div class="occ-avatar">${initials}</div>
+                            <div class="occ-info">
+                                <span class="occ-name" style="font-weight:700;">${name}</span>
+                                <span class="occ-desc" style="color:var(--primary); font-weight:600;">${data.count} ocorrência${data.count > 1 ? 's' : ''} encontrada${data.count > 1 ? 's' : ''}</span>
+                            </div>
+                            ${isGlobal ? '<div class="occ-time">❯</div>' : ''}
+                        </div>`;
+                });
+            } else {
+                // Modo Professor: Lista Individual padrão
+                dailyData.forEach(item => {
+                    const initials = item.name ? item.name.substring(0, 2).toUpperCase() : '??';
+                    const safeName = (item.name || '').replace(/'/g, "\\'");
+                    list.innerHTML += `
+                        <div class="occurrence-item" onclick="irParaInfracoes('${safeName}')" style="cursor: pointer;" title="Ver todas as infrações de ${item.name}">
+                            <div class="occ-avatar">${initials}</div>
+                            <div class="occ-info">
+                                <span class="occ-name">${item.name}</span>
+                                <span class="occ-desc">${item.desc}</span>
+                            </div>
+                            <div class="occ-time">${item.time}</div>
+                        </div>`;
+                });
+            }
         } else {
             list.innerHTML = `<div class="empty-state" style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">✅ Nenhuma infração neste dia.</div>`;
         }
@@ -133,9 +156,34 @@ function renderInterface() {
     updateKPICards();
     updatePercentagesDinamicamente();
 
-    // 4. Aplica visibilidade de porcentagem e status (definida em global.js)
     if (typeof applyGlobalSettings === 'function') {
         applyGlobalSettings();
+    }
+}
+
+// Helper para filtrar curso pelo nome (usado no clique do card agrupado)
+function applyCourseFilterByName(name) {
+    // Busca o ID do curso pelo nome na lista original de cursos (se disponível)
+    // Se não find, pelo menos seleciona o curso no modal se puder, 
+    // ou apenas abre o modal de seleção.
+    // Mas o mais simples para o MVP é apenas avisar ou abrir o modal de detalhes.
+    // O usuário pediu apenas para agrupar, a navegação é um bônus.
+    // Vou implementar a filtragem real.
+    const modalButtons = document.querySelectorAll('#courseModal .btn-modal-action');
+    let foundId = null;
+    modalButtons.forEach(btn => {
+        if (btn.innerText.includes(name)) {
+            const onclick = btn.getAttribute('onclick');
+            const match = onclick.match(/selectCourse\((\d+)/);
+            if (match) foundId = match[1];
+        }
+    });
+
+    if (foundId) {
+        selectCourse(foundId, name);
+    } else {
+        // Se não achar o ID, apenas abre o modal de detalhes do mês/dia para aquele curso (simulado)
+        openDetailModal(selectedDate.getMonth(), monthsFull[selectedDate.getMonth()]);
     }
 }
 

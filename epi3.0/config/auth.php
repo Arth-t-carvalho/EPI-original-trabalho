@@ -12,8 +12,10 @@ $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTT
     (strpos($_SERVER['REQUEST_URI'], '/apis/') !== false);
 
 // Timeout de sessão (aumentado para 24h a pedido do usuário)
-if (isset($_SESSION['last_activity']) &&
-(time() - $_SESSION['last_activity'] > 86400)) {
+if (
+    isset($_SESSION['last_activity']) &&
+    (time() - $_SESSION['last_activity'] > 86400)
+) {
 
     session_unset();
     session_destroy();
@@ -22,8 +24,7 @@ if (isset($_SESSION['last_activity']) &&
         header('Content-Type: application/json');
         echo json_encode(['status' => 'session_expired']);
         exit;
-    }
-    else {
+    } else {
         header("Location: index.php");
         exit;
     }
@@ -36,8 +37,7 @@ if (!isset($_SESSION['usuario_id'])) {
         header('Content-Type: application/json');
         echo json_encode(['status' => 'not_logged']);
         exit;
-    }
-    else {
+    } else {
         header("Location: index.php");
         exit;
     }
@@ -45,4 +45,3 @@ if (!isset($_SESSION['usuario_id'])) {
 
 // Atualiza atividade
 $_SESSION['last_activity'] = time();
-?>
