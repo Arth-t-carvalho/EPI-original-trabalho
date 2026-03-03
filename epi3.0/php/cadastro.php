@@ -13,7 +13,8 @@
 
 <body>
 
-    <div class="login-card">
+    <div class="login-card card-transition-enter">
+        <div class="card-bg-branding">EPI GUARD</div>
         <!-- Lado Esquerdo: Branding / Hero -->
         <div class="login-left">
             <div class="brand-logo">
@@ -35,12 +36,13 @@
         <!-- Lado Direito: Formulário de Cadastro -->
         <div class="login-right">
 
+            <div id="dynamicError" class="error-message" style="display: none;"></div>
             <?php if (isset($_GET['erro'])): ?>
                 <div class="error-message">
                     <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
                     <?php 
                         if($_GET['erro'] == 'formato') echo "Apenas Gmail ou CPF são permitidos.";
-                        else if($_GET['erro'] == 'existe') echo "Este e-mail/CPF já possui conta.";
+                        else if($_GET['erro'] == 'existe') echo "Este usuário já está cadastrado.";
                         else echo "Erro ao cadastrar. Tente novamente.";
                     ?>
                 </div>
@@ -54,7 +56,6 @@
             <?php endif; ?>
             <div class="login-right-header">
                 <h2>Cadastrar</h2>
-                <p>Insira as suas credenciais administrativas.</p>
             </div>
 
             <form method="POST" action="../config/registrar.php">
@@ -76,14 +77,24 @@
                     <label>SENHA</label>
                     <div class="input-wrapper">
                         <input type="password" name="senha" id="passwordInput" placeholder="••••••••" required>
-                        <div class="eye-icon" id="togglePassword">
+                        <div class="eye-icon">
+                            <i data-lucide="eye-off"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>CONFIRMAR SENHA</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="confirmar_senha" id="confirmPasswordInput" placeholder="••••••••" required>
+                        <div class="eye-icon">
                             <i data-lucide="eye-off"></i>
                         </div>
                     </div>
                 </div>
 
                 <br>
-                <button type="submit" class="btn-login" style="margin-bottom: 15px;">
+                <button type="submit" class="btn-login" style="margin-bottom: 15px;" onclick="handleCadastro(event)">
                     CRIAR CONTA <i data-lucide="chevron-right"></i>
                 </button>
 
@@ -96,38 +107,135 @@
         </div>
     </div>
 
+    <!-- Overlay de Transição Premium SENAI -->
+    <div id="transitionOverlay" class="transition-overlay">
+        <div class="transition-content">
+            <div class="transition-logo">SENAI</div>
+            <div class="transition-text">CADASTRANDO NO SISTEMA</div>
+            <div class="progress-container">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div class="transition-footer">EPI GUARD © 2026</div>
+        </div>
+    </div>
+
     <script>
+        async function handleCadastro(e) {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const nome = document.querySelector('input[name="nome"]').value.trim();
+            const user = document.querySelector('#registerUser').value.trim();
+            const pass = document.querySelector('#passwordInput').value;
+            const confirmPass = document.querySelector('#confirmPasswordInput').value;
+            const errorDiv = document.querySelector('#dynamicError');
+
+            if (!nome || !user || !pass || !confirmPass) {
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Preencha todos os campos.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+                return;
+            }
+
+            if (pass !== confirmPass) {
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> As senhas não coincidem.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+                return;
+            }
+
+            const isGmail = user.toLowerCase().endsWith('@gmail.com');
+            const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
+            if (!isGmail && !isCPF) {
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Gmail ou CPF inválido.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+
+            try {
+                const formData = new FormData(form);
+                formData.append('ajax', 'true');
+
+                const response = await fetch('../config/registrar.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const card = document.querySelector('.login-card');
+                    const overlay = document.getElementById('transitionOverlay');
+                    const progressFill = document.getElementById('progressFill');
+                    const content = document.querySelector('.transition-content');
+
+                    overlay.style.display = 'flex'; 
+                    setTimeout(() => {
+                        overlay.classList.add('active');
+                        card.classList.add('blur-start');
+
+                        setTimeout(() => {
+                            progressFill.style.width = '100%';
+                            setTimeout(() => {
+                                content.classList.add('leaving');
+                                setTimeout(() => {
+                                    window.location.href = '../php/index.php?sucesso=cadastrado';
+                                }, 700);
+                            }, 1000); 
+                        }, 800); 
+                    }, 50);
+                } else {
+                    let msg = "Erro ao cadastrar.";
+                    if(result.message === 'existe') msg = "Este usuário já está cadastrado.";
+                    else if(result.message === 'formato') msg = "Apenas Gmail ou CPF são permitidos.";
+                    
+                    errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> ${msg}`;
+                    errorDiv.style.display = 'flex';
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                console.error("Erro no cadastro:", error);
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Erro de conexão.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
 
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function(e) {
-                const user = document.querySelector('#registerUser').value.trim();
-                
-                const isGmail = user.toLowerCase().endsWith('@gmail.com');
-                const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
-
-                if (!isGmail && !isCPF) {
-                    e.preventDefault();
-                    alert("Por favor, insira um Gmail válido ou um CPF (apenas números).");
-                    return;
-                }
-            });
-
-            const togglePassword = document.querySelector('#togglePassword');
-            if (togglePassword) {
-                togglePassword.addEventListener('click', function() {
-                    const passwordInput = document.querySelector('#passwordInput');
+            // Lógica Universal: Mostrar/Ocultar Senha
+            const togglePasswordIcons = document.querySelectorAll('.eye-icon');
+            togglePasswordIcons.forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const passwordInput = this.parentElement.querySelector('input');
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
 
-                    const iconContainer = this;
                     const newIconName = type === 'password' ? 'eye-off' : 'eye';
-                    
-                    iconContainer.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+                    this.innerHTML = `<i data-lucide="${newIconName}"></i>`;
                     lucide.createIcons();
                 });
-            }
+            });
+
+            // Transição Premium de Retorno (Voltar para Login)
+            const internalLinks = document.querySelectorAll('.bottom-links a');
+            internalLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const href = this.getAttribute('href');
+                    const target = href + (href.includes('?') ? '&' : '?') + 'from=back';
+                    const card = document.querySelector('.login-card');
+                    card.classList.add('card-transition-exit-back');
+                    
+                    setTimeout(() => {
+                        window.location.href = target;
+                    }, 250);
+                });
+            });
         });
     </script>
 </body>

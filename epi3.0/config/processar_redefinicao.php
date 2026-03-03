@@ -1,11 +1,8 @@
 <?php
 require_once 'database.php';
 
-$nome = $_POST['nome'] ?? '';
 $usuario = $_POST['usuario'] ?? '';
-$senha = $_POST['senha'] ?? '';
-$cargo = $_POST['cargo'] ?? 'instrutor';
-$id_curso = 1;
+$nova_senha = $_POST['nova_senha'] ?? '';
 
 $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') || isset($_POST['ajax']);
 
@@ -16,15 +13,15 @@ function enviarResposta($sucesso, $msg, $isAjax) {
         exit;
     } else {
         if ($sucesso) {
-            header("Location: ../php/cadastro.php?sucesso=1");
+            header("Location: ../php/index.php?sucesso=redefinido");
         } else {
-            header("Location: ../php/cadastro.php?erro=" . $msg);
+            header("Location: ../php/redefinir_senha.php?erro=" . $msg);
         }
         exit;
     }
 }
 
-if (empty($nome) || empty($usuario) || empty($senha)) {
+if (empty($usuario) || empty($nova_senha)) {
     enviarResposta(false, 'campos', $isAjax);
 }
 
@@ -36,23 +33,20 @@ if (!$isGmail && !$isCPF) {
     enviarResposta(false, 'formato', $isAjax);
 }
 
-// Verifica se existe
+// Verifica e atualiza
 $checkSql = "SELECT id FROM usuarios WHERE usuario = ? LIMIT 1";
 $stmtCheck = mysqli_prepare($conn, $checkSql);
 mysqli_stmt_bind_param($stmtCheck, "s", $usuario);
 mysqli_stmt_execute($stmtCheck);
-$resCheck = mysqli_stmt_get_result($stmtCheck);
-
-if (mysqli_num_rows($resCheck) > 0) {
-    enviarResposta(false, 'existe', $isAjax);
+if (mysqli_num_rows(mysqli_stmt_get_result($stmtCheck)) === 0) {
+    enviarResposta(false, 'nao_encontrado', $isAjax);
 }
 
-// Insere
-$sql = "INSERT INTO usuarios (nome, usuario, senha, cargo, id_curso) VALUES (?, ?, ?, ?, ?)";
-$stmt = mysqli_prepare($conn, $sql);
-mysqli_stmt_bind_param($stmt, "ssssi", $nome, $usuario, $senha, $cargo, $id_curso);
+$updateSql = "UPDATE usuarios SET senha = ? WHERE usuario = ?";
+$stmtUpdate = mysqli_prepare($conn, $updateSql);
+mysqli_stmt_bind_param($stmtUpdate, "ss", $nova_senha, $usuario);
 
-if (mysqli_stmt_execute($stmt)) {
+if (mysqli_stmt_execute($stmtUpdate)) {
     enviarResposta(true, 'sucesso', $isAjax);
 } else {
     enviarResposta(false, 'db', $isAjax);

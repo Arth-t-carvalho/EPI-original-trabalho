@@ -7,7 +7,8 @@
 
 <body>
 
-    <div class="login-card">
+    <div class="login-card <?php echo (isset($_GET['from']) && $_GET['from'] == 'back') ? 'card-transition-enter-back' : 'card-transition-enter'; ?>">
+        <div class="card-bg-branding">EPI GUARD</div>
         <!-- Lado Esquerdo: Branding / Hero -->
         <div class="login-left">
             <div class="brand-logo">
@@ -33,6 +34,7 @@
                 <p>Insira as suas credenciais administrativas.</p>
             </div>
 
+            <div id="dynamicError" class="error-message" style="display: none;"></div>
             <?php if (isset($_GET['erro'])): ?>
                 <div class="error-message">
                     <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
@@ -66,7 +68,7 @@
                 </button>
 
                 <div class="bottom-links">
-                    <a href="redefinir_senha.php">Esqueceu a senha?</a>
+                    <a href="redefinir_senha.php" id="linkEsqueciSenha">Esqueceu a senha?</a>
                     <a href="cadastro.php">Não tem uma conta? Cadastre-se</a>
                 </div>
             </form>
@@ -77,7 +79,7 @@
 
 
 
-    <!-- Overlay de Transição Premium SENAI -->
+ <!-- Overlay de Transição Premium SENAI -->
     <div id="transitionOverlay" class="transition-overlay">
         <div class="transition-content">
             <div class="transition-logo">SENAI</div>
@@ -87,26 +89,38 @@
             </div>
         </div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
 
-            // Lógica de mostrar/ocultar senha
-            const togglePassword = document.querySelector('#togglePassword');
-            if (togglePassword) {
-                togglePassword.addEventListener('click', function() {
-                    const passwordInput = document.querySelector('#passwordInput');
+            // Transição Premium V5 para navegação interna
+            const internalLinks = document.querySelectorAll('.bottom-links a');
+            internalLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const href = this.getAttribute('href');
+                    const card = document.querySelector('.login-card');
+                    card.classList.add('card-transition-exit');
+                    
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 250);
+                });
+            });
+
+            // Lógica Universal: Mostrar/Ocultar Senha
+            const togglePasswordIcons = document.querySelectorAll('.eye-icon');
+            togglePasswordIcons.forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const passwordInput = this.parentElement.querySelector('input');
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
 
-                    const iconContainer = this;
                     const newIconName = type === 'password' ? 'eye-off' : 'eye';
-                    
-                    iconContainer.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+                    this.innerHTML = `<i data-lucide="${newIconName}"></i>`;
                     lucide.createIcons();
                 });
-            }
+            });
         });
 
         async function handleLogin(e) {
@@ -114,50 +128,78 @@
             const form = e.target.closest('form');
             const user = document.querySelector('#loginUser').value.trim();
             const pass = document.querySelector('#passwordInput').value;
+            const errorDiv = document.querySelector('#dynamicError');
 
             // Validação de Gmail ou CPF (Frontend)
             const isGmail = user.toLowerCase().endsWith('@gmail.com');
             const isCPF = /^\d{11}$/.test(user.replace(/\D/g, ''));
 
-            if (!isGmail && !isCPF) {
-                alert("Por favor, insira um Gmail válido ou um CPF (apenas números).");
-                return;
-            }
-
             if (!user || !pass) {
-                alert("Preencha todos os campos.");
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Preencha todos os campos.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
                 return;
             }
 
-            // Inicia Animação de Transição Premium
-            const card = document.querySelector('.login-card');
-            const overlay = document.getElementById('transitionOverlay');
-            const progressFill = document.getElementById('progressFill');
-            const content = document.querySelector('.transition-content');
+            if (!isGmail && !isCPF) {
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Gmail ou CPF inválido.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+                return;
+            }
 
-            // 1. Inicia o Slide da Direita (Fundo + Texto juntos)
-            // Primeiro garantimos que o elemento está pronto para transição
-            overlay.style.display = 'flex'; 
-            
-            setTimeout(() => {
-                overlay.classList.add('active');
-                card.classList.add('blur-start');
+            errorDiv.style.display = 'none';
 
-                setTimeout(() => {
-                    // 2. Inicia preenchimento da barra de progresso (0.8s)
-                    progressFill.style.width = '100%';
-                    
+            try {
+                const formData = new FormData(form);
+                formData.append('ajax', 'true');
+
+                const response = await fetch('../config/autenticar.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // SUCESSO: Dispara Animação Premium SENAI
+                    const card = document.querySelector('.login-card');
+                    const overlay = document.getElementById('transitionOverlay');
+                    const progressFill = document.getElementById('progressFill');
+                    const content = document.querySelector('.transition-content');
+
+                    overlay.style.display = 'flex'; 
                     setTimeout(() => {
-                        // 3. "Suma devagarzinho" - Fade out gradual
-                        content.classList.add('leaving');
-                        
+                        overlay.classList.add('active');
+                        card.classList.add('blur-start');
+
                         setTimeout(() => {
-                            // 4. Envia o formulário
-                            form.submit();
-                        }, 700);
-                    }, 1000); 
-                }, 800); 
-            }, 50); // Micro-delay para garantir o render do estado inicial
+                            progressFill.style.width = '100%';
+                            setTimeout(() => {
+                                content.classList.add('leaving');
+                                setTimeout(() => {
+                                    window.location.href = result.redirect;
+                                }, 700);
+                            }, 1000); 
+                        }, 800); 
+                    }, 50);
+                } else {
+                    // ERRO: Exibe mensagem sem animação
+                    let msg = "Usuário ou senha incorretos.";
+                    if(result.message === 'formato') msg = "Apenas Gmail ou CPF são permitidos.";
+                    else if(result.message === 'campos') msg = "Preencha todos os campos.";
+                    
+                    errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> ${msg}`;
+                    errorDiv.style.display = 'flex';
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+                errorDiv.innerHTML = `<i data-lucide="alert-circle"></i> Erro de conexão com o servidor.`;
+                errorDiv.style.display = 'flex';
+                lucide.createIcons();
+            }
         }
     </script>
 </body>
