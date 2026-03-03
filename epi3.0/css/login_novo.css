@@ -358,9 +358,8 @@ body {
     }
 }
 
-
 /* =========================================
-   ANIMAÇÃO DE TRANSIÇÃO (ENTRADA DASHBOARD)
+   TRANSIÇÃO SLIDE PREMIUM SENAI
    ========================================= */
 
 .transition-overlay {
@@ -370,50 +369,38 @@ body {
     width: 100%;
     height: 100%;
     z-index: 9999;
-    display: none;
+    background-color: #E30613;
+    /* Vermelho Institucional SENAI sólido */
+    display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
+    /* Evita cliques enquanto oculto */
+    opacity: 0;
+    transform: translate3d(100%, 0, 0);
+    transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s ease;
+    will-change: transform, opacity;
     overflow: hidden;
 }
 
-.transition-panel {
-    position: absolute;
-    top: 0;
-    left: 100%;
-    /* Inicia totalmente fora à direita */
-    width: 100%;
-    height: 100%;
-    background: var(--primary-gradient);
-    /* Sombra intensa na borda esquerda para simular a dobra/profundidade da folha */
-    box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5);
-    transition: transform 0.9s cubic-bezier(0.19, 1, 0.22, 1);
-    will-change: transform;
+.transition-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.1s ease;
 }
 
 .transition-content {
-    position: relative;
-    z-index: 100;
-    color: white;
-    /* Mantido branco para visibilidade no fundo vermelho */
     text-align: center;
+    color: white;
+    /* O conteúdo já vem junto com o slide do pai */
+}
+
+/* "Suma devagarzinho" (Fade out gradual) */
+.transition-content.leaving {
     opacity: 0;
-    transform: translateX(100px);
-    /* Começa mais à direita para acompanhar o slide */
-    transition: all 0.7s cubic-bezier(0.19, 1, 0.22, 1) 0.3s;
-}
-
-.transition-overlay.active {
-    display: flex;
-}
-
-.transition-overlay.active .transition-panel {
-    transform: translateX(-100%);
-    /* Desliza cobrindo a página anterior */
-}
-
-.transition-overlay.active .transition-content {
-    opacity: 1;
-    transform: translateX(0);
+    filter: blur(8px);
+    transition: all 0.7s ease-out;
 }
 
 .transition-logo {
@@ -424,34 +411,33 @@ body {
 }
 
 .transition-text {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: 2px;
-    opacity: 0.8;
-    margin-bottom: 30px;
+    letter-spacing: 3px;
+    opacity: 0.9;
+    margin-bottom: 25px;
+    text-transform: uppercase;
 }
 
 .progress-container {
-    width: 300px;
-    height: 4px;
+    width: 250px;
+    height: 3px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
     margin: 0 auto;
-    overflow: hidden;
 }
 
 .progress-fill {
     width: 0%;
     height: 100%;
     background: white;
-    transition: width 1.5s linear;
+    transition: width 0.8s linear;
 }
 
-/* Efeitos de saída no conteúdo do login */
-.fade-out {
-    opacity: 0 !important;
-    transform: scale(0.95) !important;
-    transition: all 0.5s ease-out !important;
+/* Efeito no card de login ao iniciar */
+.blur-start {
+    filter: blur(10px);
+    opacity: 0.5;
+    transition: all 0.5s ease;
 }
 
 /* Fade In para o Dashboard */

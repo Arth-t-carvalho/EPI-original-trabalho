@@ -1,13 +1,8 @@
-    <title>EPI GUARD | Login</title>
+        <title>EPI GUARD | Login</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Estilos -->
     <link rel="stylesheet" href="../css/login_novo.css">
-    <style>
-        /* Ajuste para evitar que o overlay apareça antes do tempo */
-        .transition-overlay { display: none; }
-        .transition-overlay.active { display: flex; }
-    </style>
 </head>
 
 <body>
@@ -78,9 +73,12 @@
         </div>
     </div>
 
-    <!-- Overlay de Transição -->
+
+
+
+
+    <!-- Overlay de Transição Premium SENAI -->
     <div id="transitionOverlay" class="transition-overlay">
-        <div class="transition-panel"></div>
         <div class="transition-content">
             <div class="transition-logo">SENAI</div>
             <div class="transition-text">A AUTENTICAR SISTEMA</div>
@@ -131,28 +129,35 @@
                 return;
             }
 
-            // Inicia Animação de Transição
+            // Inicia Animação de Transição Premium
             const card = document.querySelector('.login-card');
             const overlay = document.getElementById('transitionOverlay');
             const progressFill = document.getElementById('progressFill');
+            const content = document.querySelector('.transition-content');
 
-            // 1. Fade out suave do card
-            card.classList.add('fade-out');
-
+            // 1. Inicia o Slide da Direita (Fundo + Texto juntos)
+            // Primeiro garantimos que o elemento está pronto para transição
+            overlay.style.display = 'flex'; 
+            
             setTimeout(() => {
-                // 2. Ativa overlay e expande painel vermelho
                 overlay.classList.add('active');
-                
+                card.classList.add('blur-start');
+
                 setTimeout(() => {
-                    // 3. Inicia preenchimento da barra de progresso (1.5s)
+                    // 2. Inicia preenchimento da barra de progresso (0.8s)
                     progressFill.style.width = '100%';
                     
                     setTimeout(() => {
-                        // 4. Envia o formulário após a animação
-                        form.submit();
-                    }, 1600); // 1.5s da barra + um tempinho de segurança
-                }, 500);
-            }, 300);
+                        // 3. "Suma devagarzinho" - Fade out gradual
+                        content.classList.add('leaving');
+                        
+                        setTimeout(() => {
+                            // 4. Envia o formulário
+                            form.submit();
+                        }, 700);
+                    }, 1000); 
+                }, 800); 
+            }, 50); // Micro-delay para garantir o render do estado inicial
         }
     </script>
 </body>
