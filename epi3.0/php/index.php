@@ -93,32 +93,35 @@
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
 
-            // Transição Premium V5 para navegação interna
-            const internalLinks = document.querySelectorAll('.bottom-links a');
-            internalLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const href = this.getAttribute('href');
-                    const card = document.querySelector('.login-card');
-                    card.classList.add('card-transition-exit');
-                    
-                    setTimeout(() => {
-                        window.location.href = href;
-                    }, 250);
-                });
-            });
-
             // Lógica Universal: Mostrar/Ocultar Senha
             const togglePasswordIcons = document.querySelectorAll('.eye-icon');
             togglePasswordIcons.forEach(icon => {
                 icon.addEventListener('click', function() {
-                    const passwordInput = this.parentElement.querySelector('input');
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-
-                    const newIconName = type === 'password' ? 'eye-off' : 'eye';
-                    this.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+                    const input = this.parentElement.querySelector('input');
+                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                    input.setAttribute('type', type);
+                    
+                    const isPassword = type === 'password';
+                    this.innerHTML = `<i data-lucide="${isPassword ? 'eye' : 'eye-off'}"></i>`;
                     lucide.createIcons();
+                });
+            });
+
+            // Transição Premium de Navegação (0.25s)
+            const internalLinks = document.querySelectorAll('.bottom-links a, .forgot-password');
+            internalLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href && href.endsWith('.php')) {
+                        e.preventDefault();
+                        const card = document.querySelector('.login-card');
+                        const isBack = this.innerText.toLowerCase().includes('voltar');
+                        
+                        card.classList.add(isBack ? 'card-transition-exit-back' : 'card-transition-exit');
+                        setTimeout(() => {
+                            window.location.href = href;
+                        }, 250);
+                    }
                 });
             });
         });

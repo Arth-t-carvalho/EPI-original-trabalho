@@ -84,18 +84,6 @@
         </div>
     </div>
 
-    <!-- Overlay de Transição Premium SENAI -->
-    <div id="transitionOverlay" class="transition-overlay">
-        <div class="transition-content">
-            <div class="transition-logo">SENAI</div>
-            <div class="transition-text">REDEFININDO ACESSO</div>
-            <div class="progress-container">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-            <div class="transition-footer">EPI GUARD © 2026</div>
-        </div>
-    </div>
-
     <script>
         async function handleReset(e) {
             e.preventDefault();
@@ -135,26 +123,10 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    const card = document.querySelector('.login-card');
-                    const overlay = document.getElementById('transitionOverlay');
-                    const progressFill = document.getElementById('progressFill');
-                    const content = document.querySelector('.transition-content');
-
-                    overlay.style.display = 'flex'; 
-                    setTimeout(() => {
-                        overlay.classList.add('active');
-                        card.classList.add('blur-start');
-
-                        setTimeout(() => {
-                            progressFill.style.width = '100%';
-                            setTimeout(() => {
-                                content.classList.add('leaving');
-                                setTimeout(() => {
-                                    window.location.href = '../php/index.php?sucesso=redefinido';
-                                }, 700);
-                            }, 1000); 
-                        }, 800); 
-                    }, 50);
+                    errorDiv.className = 'success-message';
+                    errorDiv.innerHTML = `<i data-lucide="check-circle"></i> Senha alterada com sucesso! Você já pode voltar ao login.`;
+                    errorDiv.style.display = 'flex';
+                    lucide.createIcons();
                 } else {
                     let msg = "Erro ao redefinir.";
                     if(result.message === 'nao_encontrado') msg = "Usuário não encontrado.";
@@ -179,32 +151,34 @@
             const togglePasswordIcons = document.querySelectorAll('.eye-icon');
             togglePasswordIcons.forEach(icon => {
                 icon.addEventListener('click', function() {
-                    const passwordInput = this.parentElement.querySelector('input');
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-
-                    const newIconName = type === 'password' ? 'eye-off' : 'eye';
-                    this.innerHTML = `<i data-lucide="${newIconName}"></i>`;
+                    const input = this.parentElement.querySelector('input');
+                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                    input.setAttribute('type', type);
+                    
+                    const isPassword = type === 'password';
+                    this.innerHTML = `<i data-lucide="${isPassword ? 'eye' : 'eye-off'}"></i>`;
                     lucide.createIcons();
                 });
             });
-            // Transição Premium de Retorno (Voltar para Login)
+
+            // Transição Premium de Navegação (0.25s)
             const internalLinks = document.querySelectorAll('.bottom-links a');
             internalLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
-                    e.preventDefault();
                     const href = this.getAttribute('href');
-                    const target = href + (href.includes('?') ? '&' : '?') + 'from=back';
-                    const card = document.querySelector('.login-card');
-                    card.classList.add('card-transition-exit-back');
-                    
-                    setTimeout(() => {
-                        window.location.href = target;
-                    }, 250);
+                    if (href && href.endsWith('.php')) {
+                        e.preventDefault();
+                        const card = document.querySelector('.login-card');
+                        const isBack = this.innerText.toLowerCase().includes('voltar');
+                        
+                        card.classList.add(isBack ? 'card-transition-exit-back' : 'card-transition-exit');
+                        setTimeout(() => {
+                            window.location.href = href;
+                        }, 250);
+                    }
                 });
             });
         });
     </script>
 </body>
-
 </html>

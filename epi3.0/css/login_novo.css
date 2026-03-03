@@ -423,7 +423,6 @@ body {
     opacity: 1;
     pointer-events: auto;
     transform: translate3d(0, 0, 0);
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.1s ease;
 }
 
 .transition-content {
@@ -452,6 +451,7 @@ body {
     margin-bottom: 25px;
     text-transform: uppercase;
 }
+
 
 .progress-container {
     width: 250px;
