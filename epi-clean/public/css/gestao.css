@@ -1,0 +1,398 @@
+/* =========================================
+   Gestão Administrativa - Estilos Gerais
+   ========================================= */
+
+.gestao-container {
+    padding: 20px;
+    animation: fadeIn 0.4s ease;
+}
+
+.gestao-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.gestao-actions {
+    display: flex;
+    gap: 15px;
+}
+
+/* --- Tabela de Gestão --- */
+.card-gestao {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.table-controls {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.search-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.search-wrapper i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    width: 18px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 15px 10px 40px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-body);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* --- Modal de Confirmação (Delete) --- */
+.modal-confirm {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.modal-confirm.active {
+    display: flex;
+}
+
+.confirm-content {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 400px;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid var(--border);
+}
+
+.confirm-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.confirm-icon i {
+    width: 30px;
+    height: 30px;
+}
+
+.confirm-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 10px;
+}
+
+.confirm-text {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-cancel-confirm {
+    background: var(--bg-body);
+    color: var(--text-muted);
+}
+
+.btn-cancel-confirm:hover {
+    background: #dee2e6;
+    color: var(--text-main);
+}
+
+.btn-danger-confirm {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger-confirm:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Ajustes Dark Mode */
+body.dark-mode .confirm-content {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+body.dark-mode .btn-cancel-confirm {
+    background: #374151;
+    color: #9ca3af;
+}
+
+body.dark-mode .btn-cancel-confirm:hover {
+    background: #4b5563;
+    color: white;
+}
+
+.gestao-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.gestao-table th {
+    background: rgba(0, 0, 0, 0.02);
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+}
+
+.gestao-table td {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.gestao-table tr {
+    transition: all 0.2s ease;
+}
+
+.gestao-table tr:hover {
+    background: rgba(227, 6, 19, 0.04);
+    box-shadow: inset 4px 0 0 var(--primary);
+}
+
+body.dark-mode .gestao-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 4px 0 0 var(--primary);
+}
+
+/* --- Botões de Ação --- */
+.btn-gestao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-add {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-add:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.btn-icon i,
+.btn-icon svg {
+    pointer-events: none;
+}
+
+.btn-edit {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.btn-edit:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-delete {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.btn-delete:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* --- Modais --- */
+.modal-gestao {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-gestao.active {
+    display: flex;
+}
+
+.modal-content-gestao {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 500px;
+    border-radius: var(--radius);
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    animation: modalUp 0.3s ease-out;
+}
+
+.modal-header-gestao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.modal-header-gestao h2 {
+    font-size: 20px;
+    margin: 0;
+}
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+/* --- Formulários --- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-body);
+    outline: none;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.form-input:focus,
+.form-select:focus {
+    border-color: var(--primary);
+}
+
+@keyframes modalUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
