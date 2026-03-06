@@ -27,9 +27,19 @@ if (file_exists(__DIR__ . '/../.env')) {
 
 // Simple Router
 $method = $_SERVER['REQUEST_METHOD'];
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$path = str_replace('/backend/public/index.php', '', $path);
+$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$scriptName = $_SERVER['SCRIPT_NAME'];
+
+// Extrai o caminho relativo removendo o nome do script (index.php) do caminho total
+$path = str_replace($scriptName, '', $requestUri);
+
+// Se o caminho estiver vazio (ex: acessando apenas index.php), tratar como raiz
+if (empty($path)) {
+    $path = '/';
+}
+
 $path = rtrim($path, '/');
+if (empty($path)) $path = '/';
 
 // Setup DI (Manual for this structure)
 $repository = new SQLiteCollectedItemRepository();

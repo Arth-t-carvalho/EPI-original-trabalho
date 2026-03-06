@@ -21,11 +21,8 @@ const toastMsg = document.getElementById('toastMsg');
 
 // Elementos do Modal da Câmera
 const cameraModal = document.getElementById('cameraModal');
-const cameraVideo = document.getElementById('cameraVideo');
-const qrCanvas = document.getElementById('qrCanvas');
-const qrContext = qrCanvas ? qrCanvas.getContext('2d', { willReadFrequently: true }) : null;
 const btnCloseCamera = document.getElementById('btnCloseCamera');
-const btnSimulateCapture = document.getElementById('btnSimulateCapture');
+const btnSwitchCamera = document.getElementById('btnSwitchCamera');
 
 // Elementos da Sidebar
 const btnMenu = document.getElementById('btnMenu');
@@ -33,8 +30,14 @@ const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
 const btnCloseSidebar = document.getElementById('btnCloseSidebar');
 
-let cameraStream = null;
-let isScanning = false;
+// Elementos do Modal de Exclusão Individual
+const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+const btnCancelDelete = document.getElementById('btnCancelDelete');
+const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+let html5QrCode = null;
+let currentFacingMode = "environment";
+let itemToDelete = null;
 
 // Função para mostrar notificação rápida
 function showToast(message, type = 'success') {
@@ -66,24 +69,32 @@ async function loadItems() {
 
 // Função para renderizar a lista
 function renderList(items) {
+    if (!listContainer) return;
     listContainer.innerHTML = '';
-    itemCount.textContent = items.length;
+    if (itemCount) itemCount.textContent = items.length;
 
     if (items.length === 0) {
-        emptyState.style.display = 'flex';
-        btnSendEmail.disabled = true;
-        btnSendEmail.style.opacity = '0.5';
+        if (emptyState) emptyState.style.display = 'flex';
+        if (btnSendEmail) {
+            btnSendEmail.disabled = true;
+            btnSendEmail.style.opacity = '0.5';
+        }
     } else {
-        emptyState.style.display = 'none';
-        btnSendEmail.disabled = false;
-        btnSendEmail.style.opacity = '1';
+        if (emptyState) emptyState.style.display = 'none';
+        if (btnSendEmail) {
+            btnSendEmail.disabled = false;
+            btnSendEmail.style.opacity = '1';
+        }
 
         items.forEach(item => {
             const li = document.createElement('li');
             li.className = 'data-item';
+            const scanBadge = item.scan_count > 1
+                ? `<span class="scan-count-badge" title="Escaneado ${item.scan_count} vezes"><i data-lucide="repeat" width="11" height="11"></i> ${item.scan_count}x</span>`
+                : '';
             li.innerHTML = `
                 <div class="item-info">
-                    <span class="item-code">${item.code}</span>
+                    <span class="item-code">${item.code} ${scanBadge}</span>
                     <span class="item-time"><i data-lucide="clock" width="10" height="10" style="display:inline; margin-right:3px;"></i>${formatDateTime(item.timestamp)}</span>
                 </div>
                 <button class="btn-delete-item" onclick="deleteItemById(${item.id})" title="Remover item">
@@ -99,25 +110,50 @@ function renderList(items) {
 }
 
 // Função global para deletar item por ID
-window.deleteItemById = async function (id) {
-    if (!confirm('Deseja remover este item da lista?')) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/items/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            showToast('Item removido com sucesso!');
-            loadItems();
-        } else {
-            showToast('Erro ao remover item', 'error');
-        }
-    } catch (error) {
-        console.error('Erro ao deletar item:', error);
-        showToast('Erro de conexão ao remover', 'error');
+// Função global para abrir o modal de exclusão
+window.deleteItemById = function (id) {
+    itemToDelete = id;
+    if (deleteConfirmModal) {
+        deleteConfirmModal.style.display = 'flex';
+        lucide.createIcons();
     }
 };
+
+// Evento: Confirmar exclusão individual
+if (btnConfirmDelete) {
+    btnConfirmDelete.addEventListener('click', async () => {
+        if (!itemToDelete) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/items/${itemToDelete}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('Item removido com sucesso!');
+                loadItems();
+            } else {
+                showToast('Erro ao remover item', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao deletar item:', error);
+            showToast('Erro de conexão ao remover', 'error');
+        } finally {
+            deleteConfirmModal.style.display = 'none';
+            itemToDelete = null;
+        }
+    });
+}
+
+// Evento: Cancelar exclusão individual
+if (btnCancelDelete) {
+    btnCancelDelete.addEventListener('click', () => {
+        if (deleteConfirmModal) {
+            deleteConfirmModal.style.display = 'none';
+            itemToDelete = null;
+        }
+    });
+}
 
 // Adicionar novo código à API
 async function addCode(code) {
@@ -134,13 +170,13 @@ async function addCode(code) {
 
         if (response.ok) {
             showToast('Código registrado!');
-            input.value = '';
+            if (input) input.value = '';
             loadItems();
         } else {
             showToast(result.error || 'Erro ao registrar', 'error');
-            input.value = '';
+            if (input) input.value = '';
         }
-        input.focus();
+        if (input) input.focus();
     } catch (error) {
         console.error('Erro ao registrar item:', error);
         showToast('Erro de conexão com o servidor', 'error');
@@ -148,88 +184,129 @@ async function addCode(code) {
 }
 
 // Evento: Submissão do formulário
-form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    addCode(input.value);
-});
+if (form) {
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input) addCode(input.value);
+    });
+}
 
-// --- Lógica da Câmera ---
+// --- Lógica da Câmera (html5-qrcode) ---
 async function startCamera() {
+    // Limpa instância anterior se existir
+    if (html5QrCode) {
+        try {
+            if (html5QrCode.isScanning) {
+                await html5QrCode.stop();
+            }
+        } catch (e) {
+            console.warn("Erro ao parar câmera anterior:", e);
+        }
+        try {
+            html5QrCode.clear();
+        } catch (e) {
+            // clear() pode falhar se o DOM foi alterado, ignorar
+        }
+        html5QrCode = null;
+    }
+
+    // Garante que o container reader está limpo
+    const readerEl = document.getElementById('reader');
+    if (readerEl) readerEl.innerHTML = '';
+
+    html5QrCode = new Html5Qrcode("reader");
+
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false
+    };
+
+    const onSuccess = (decodedText) => {
+        console.log("Código lido:", decodedText);
+        if (navigator.vibrate) navigator.vibrate(200);
+        addCode(decodedText);
+        closeCamera();
+    };
+
+    const onError = () => { /* Silenciar erros de busca */ };
+
+    // Tentativa 1: Usar facingMode
     try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
-        if (cameraVideo) {
-            cameraVideo.srcObject = cameraStream;
-            isScanning = true;
-            requestAnimationFrame(tick);
+        await html5QrCode.start(
+            { facingMode: currentFacingMode },
+            config,
+            onSuccess,
+            onError
+        );
+        return;
+    } catch (err) {
+        console.warn("facingMode falhou, tentando listar câmeras...", err);
+    }
+
+    // Tentativa 2: Listar câmeras disponíveis
+    try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+            let cameraId = cameras[0].id;
+            for (const cam of cameras) {
+                if (cam.label && (cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('traseira') || cam.label.toLowerCase().includes('rear'))) {
+                    cameraId = cam.id;
+                    break;
+                }
+            }
+            await html5QrCode.start(
+                cameraId,
+                config,
+                onSuccess,
+                onError
+            );
+        } else {
+            showToast("Nenhuma câmera encontrada", "error");
         }
-    } catch (error) {
-        console.error('Erro ao acessar a câmera:', error);
-        showToast('Não foi possível acessar a câmera', 'error');
+    } catch (err2) {
+        console.error("Erro ao acessar câmera:", err2);
+        showToast("Erro ao acessar câmera. Verifique as permissões.", "error");
     }
 }
 
-function stopCamera() {
-    isScanning = false;
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-    }
-    if (cameraVideo) {
-        cameraVideo.srcObject = null;
+async function stopCamera() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        try {
+            await html5QrCode.stop();
+        } catch (err) {
+            console.error("Erro ao parar câmera:", err);
+        }
     }
 }
 
-function tick() {
-    if (!isScanning) return;
-
-    if (cameraVideo && cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
-        qrCanvas.height = cameraVideo.videoHeight;
-        qrCanvas.width = cameraVideo.videoWidth;
-        qrContext.drawImage(cameraVideo, 0, 0, qrCanvas.width, qrCanvas.height);
-
-        const imageData = qrContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
-
-        if (code && code.data) {
-            console.log("QR Code detectado!", code.data);
-            isScanning = false;
-
-            // Feedback tátil
-            if (navigator.vibrate) navigator.vibrate(200);
-
-            addCode(code.data);
-            cameraModal.style.display = 'none';
-            stopCamera();
-            return;
-        }
-    }
-    requestAnimationFrame(tick);
+function closeCamera() {
+    if (cameraModal) cameraModal.style.display = 'none';
+    stopCamera();
 }
 
 // Evento: Abrir Modal da Câmera
-btnSimulateScan.addEventListener('click', () => {
-    cameraModal.style.display = 'flex';
-    startCamera();
-    lucide.createIcons();
-});
+if (btnSimulateScan) {
+    btnSimulateScan.addEventListener('click', () => {
+        if (cameraModal) cameraModal.style.display = 'flex';
+        startCamera();
+        lucide.createIcons();
+    });
+}
 
 // Evento: Fechar Modal da Câmera
-btnCloseCamera.addEventListener('click', () => {
-    cameraModal.style.display = 'none';
-    stopCamera();
-});
+if (btnCloseCamera) btnCloseCamera.addEventListener('click', closeCamera);
 
-// Evento: Botão Simular Captura no Modal
-btnSimulateCapture.addEventListener('click', () => {
-    const randomCode = 'CTE' + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
-    addCode(randomCode);
-    cameraModal.style.display = 'none';
-    stopCamera();
-});
+// Evento: Alternar Câmera
+if (btnSwitchCamera) {
+    btnSwitchCamera.addEventListener('click', async () => {
+        currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+        await stopCamera();
+        startCamera();
+    });
+}
+
 
 // --- Lógica da Sidebar ---
 function openSidebar() {
@@ -237,6 +314,7 @@ function openSidebar() {
         sidebar.style.right = '0';
         sidebarOverlay.style.visibility = 'visible';
         sidebarOverlay.style.opacity = '1';
+        // Removido lucide.createIcons() daqui para evitar substituição de elementos estáveis
     }
 }
 
@@ -260,32 +338,44 @@ if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
 const confirmModal = document.getElementById('confirmModal');
 const btnCancelClear = document.getElementById('btnCancelClear');
 const btnConfirmClear = document.getElementById('btnConfirmClear');
+const modalItemCount = document.getElementById('modalItemCount');
 
-// Evento: Abrir modal de Limpar Tudo
-btnClearAll.addEventListener('click', () => {
-    confirmModal.style.display = 'flex';
-});
-
-// Evento: Fechar modal (Cancelar)
-btnCancelClear.addEventListener('click', () => {
-    confirmModal.style.display = 'none';
-});
-
-// Evento: Confirmar limpeza
-btnConfirmClear.addEventListener('click', async () => {
-    confirmModal.style.display = 'none'; // Fecha o modal primeiro
-    try {
-        const response = await fetch(`${API_BASE_URL}/items`, { method: 'DELETE' });
-        if (response.ok) {
-            showToast('Lista limpa com sucesso!');
-            loadItems();
-        } else {
-            showToast('Erro ao limpar lista', 'error');
+// Ação ao clicar no botão principal "Limpar Tudo"
+if (btnClearAll) {
+    btnClearAll.addEventListener('click', () => {
+        if (modalItemCount && itemCount) {
+            // Pega o número atual do contador da tela e joga para o modal
+            modalItemCount.textContent = itemCount.textContent || '0';
         }
-    } catch (error) {
-        showToast('Erro ao conectar', 'error');
-    }
-});
+        if (confirmModal) confirmModal.style.display = 'flex'; // Exibe o modal
+        lucide.createIcons(); // Garante que o ícone de lixeira apareça
+    });
+}
+
+// Ação do botão "Cancelar" dentro do modal
+if (btnCancelClear) {
+    btnCancelClear.addEventListener('click', () => {
+        if (confirmModal) confirmModal.style.display = 'none'; // Apenas fecha sem fazer nada
+    });
+}
+
+// Ação do botão "Continuar" dentro do modal (Limpeza Real)
+if (btnConfirmClear) {
+    btnConfirmClear.addEventListener('click', async () => {
+        if (confirmModal) confirmModal.style.display = 'none'; // Fecha o modal
+        try {
+            const response = await fetch(`${API_BASE_URL}/items`, { method: 'DELETE' });
+            if (response.ok) {
+                showToast('Lista limpa com sucesso!');
+                loadItems(); // Recarrega a lista vazia
+            } else {
+                showToast('Erro ao limpar lista', 'error');
+            }
+        } catch (error) {
+            showToast('Erro ao conectar', 'error');
+        }
+    });
+}
 
 // --- Dados das Filiais Fachini ---
 const branches = [
@@ -381,14 +471,14 @@ function renderBranchList() {
 // Eventos de Navegação dos Modais
 if (btnSendEmail) {
     btnSendEmail.addEventListener('click', () => {
-        destinationModal.style.display = 'flex';
+        if (destinationModal) destinationModal.style.display = 'flex';
         lucide.createIcons();
     });
 }
 
 if (fieldSelectBranch) {
     fieldSelectBranch.addEventListener('click', () => {
-        branchSelectionModal.style.display = 'flex';
+        if (branchSelectionModal) branchSelectionModal.style.display = 'flex';
         renderFilterStates();
         renderBranchList();
     });
@@ -396,16 +486,18 @@ if (fieldSelectBranch) {
 
 if (btnCloseBranchSelection) {
     btnCloseBranchSelection.addEventListener('click', () => {
-        branchSelectionModal.style.display = 'none';
+        if (branchSelectionModal) branchSelectionModal.style.display = 'none';
     });
 }
 
 if (btnCancelSend) {
     btnCancelSend.addEventListener('click', () => {
-        destinationModal.style.display = 'none';
-        destinationInput.value = '';
-        btnConfirmSend.disabled = true;
-        btnConfirmSend.style.opacity = '0.6';
+        if (destinationModal) destinationModal.style.display = 'none';
+        if (destinationInput) destinationInput.value = '';
+        if (btnConfirmSend) {
+            btnConfirmSend.disabled = true;
+            btnConfirmSend.style.opacity = '0.6';
+        }
     });
 }
 
@@ -416,7 +508,7 @@ if (branchSearch) {
 // --- Lógica Final de Envio com Animação ---
 if (btnConfirmSend) {
     btnConfirmSend.addEventListener('click', async () => {
-        destinationModal.style.display = 'none';
+        if (destinationModal) destinationModal.style.display = 'none';
 
         // Iniciar Animação do Caminhão
         const truckIcon = document.querySelector('.truck-wrapper');
@@ -424,59 +516,62 @@ if (btnConfirmSend) {
 
         if (truckIcon && logoText) {
             const header = truckIcon.closest('.header');
-            const headerWidth = header.clientWidth;
+            const headerWidth = header ? header.clientWidth : window.innerWidth;
             const stopDistance = headerWidth - 100;
 
             truckIcon.style.setProperty('--drive-dist', `${stopDistance}px`);
             truckIcon.classList.add('truck-driving');
             logoText.classList.add('hide-logo');
+        }
 
-            showToast('Finalizando e enviando...', 'success');
+        showToast('Finalizando e enviando...', 'success');
 
-            // Aguarda a animação e depois faz reset + envia
-            setTimeout(async () => {
-                // Reset suave: remove animação e restaura posição
+        // Aguarda a animação e depois faz reset + envia
+        setTimeout(async () => {
+            // Reset suave se os elementos existirem
+            if (truckIcon && logoText) {
                 truckIcon.classList.remove('truck-driving');
                 truckIcon.style.transition = 'none';
                 truckIcon.style.transform = 'translateX(0)';
                 truckIcon.style.opacity = '1';
-                // Força reflow para aplicar imediatamente
                 void truckIcon.offsetWidth;
                 truckIcon.style.transition = '';
 
                 logoText.classList.remove('hide-logo');
                 logoText.style.clipPath = 'inset(0 0 0 0)';
                 logoText.style.opacity = '1';
+            }
 
-                // Processar Envio Real
-                try {
-                    const response = await fetch(`${API_BASE_URL}/report`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ destination: destinationInput.value })
-                    });
+            // Processar Envio Real
+            try {
+                const dest = destinationInput ? destinationInput.value : '';
+                const response = await fetch(`${API_BASE_URL}/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destination: dest })
+                });
 
-                    if (response.ok) {
-                        showToast('Relatório enviado com sucesso!');
-                        loadItems();
-                        destinationInput.value = '';
+                if (response.ok) {
+                    showToast('Relatório enviado com sucesso!');
+                    loadItems();
+                    if (destinationInput) destinationInput.value = '';
+                    if (btnConfirmSend) {
                         btnConfirmSend.disabled = true;
                         btnConfirmSend.style.opacity = '0.5';
-                    } else {
-                        showToast('Erro no envio do relatório', 'error');
                     }
-                } catch (error) {
-                    showToast('Erro de conexão ao enviar', 'error');
+                } else {
+                    showToast('nao foi possivel encaminhar para o gmail selecionado.', 'error');
                 }
-            }, 2500);
-
-        }
+            } catch (error) {
+                showToast('nao foi possivel encaminhar para o gmail selecionado.', 'error');
+            }
+        }, 2500);
     });
 }
 
 // Inicialização
 loadItems();
-input.focus();
+if (input) input.focus();
 
 // Lógica da Tela de Splash com Carrossel
 const btnEnterApp = document.getElementById('btnEnterApp');
@@ -617,7 +712,9 @@ if (btnEnterApp && splashScreen && appContainer) {
         appContainer.style.opacity = '1';
         // Limpa o parâmetro da URL sem recarregar
         window.history.replaceState({}, '', window.location.pathname);
-        setTimeout(() => input.focus(), 100);
+        setTimeout(() => {
+            if (input) input.focus();
+        }, 100);
     } else {
         // Fluxo normal com animação
         let progress = 0;
@@ -635,7 +732,9 @@ if (btnEnterApp && splashScreen && appContainer) {
             stopAutoRotate();
             splashScreen.classList.add('fade-out');
             appContainer.classList.add('reveal');
-            setTimeout(() => input.focus(), 500);
+            setTimeout(() => {
+                if (input) input.focus();
+            }, 500);
         });
     }
 }

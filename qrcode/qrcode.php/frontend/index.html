@@ -7,6 +7,7 @@
     <title>Fachini - Coleta de Dados</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <link rel="stylesheet" href="css/style.css?v=2">
 </head>
@@ -51,8 +52,10 @@
                 <div class="smoke"></div>
             </div>
             <span class="logo-text">FACCHINI</span>
-            <i data-lucide="menu" width="24" height="24" class="header-icon-right" id="btnMenu"
-                style="cursor:pointer;"></i>
+            <button id="btnMenu" class="header-icon-right"
+                style="background:none; border:none; color:inherit; cursor:pointer; padding:0; display:flex; align-items:center;">
+                <i data-lucide="menu" width="24" height="24"></i>
+            </button>
         </header>
 
         <!-- Sidebar Overlay -->
@@ -145,41 +148,55 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="camera-view">
-                    <video id="cameraVideo" autoplay playsinline
-                        style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;">
-                    </video>
-                    <canvas id="qrCanvas" style="display:none;"></canvas>
-                    <div class="scan-area">
-                        <div class="scan-area-corners"></div>
-                        <div class="scan-line"></div>
-                    </div>
-                    <p class="camera-instruction">Posicione o código de barras ou QR Code<br>dentro do quadrado para
-                        leitura.</p>
-                </div>
+                <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; background: #000;"></div>
+                <p class="camera-instruction" style="margin-top: 15px;">Posicione o código dentro do quadrado.</p>
                 <div class="modal-controls">
-                    <button class="btn-capture" id="btnSimulateCapture">
-                        <i data-lucide="camera" width="24" height="24"></i> Capturar Código
+                    <button class="btn-capture" id="btnSwitchCamera">
+                        <i data-lucide="refresh-cw" width="20" height="20"></i> Alternar Câmera
                     </button>
                 </div>
             </div>
-            <!-- Modal de Confirmação (Limpar Tudo) -->
-            <div class="modal-overlay" id="confirmModal">
-                <div class="confirm-box">
-                    <div class="confirm-icon">
-                        <i data-lucide="alert-triangle" width="48" height="48"></i>
-                    </div>
-                    <h3 class="confirm-title">Atenção!</h3>
-                    <p class="confirm-text">Tem certeza que deseja limpar todos os códigos lidos? Esta ação não pode ser
-                        desfeita.</p>
-                    <div class="confirm-actions">
-                        <button class="btn btn-secondary" id="btnCancelClear">Cancelar</button>
-                        <button class="btn btn-primary" id="btnConfirmClear"
-                            style="background-color: var(--danger); box-shadow: none;">Sim, Limpar</button>
-                    </div>
+        </div>
+
+        <!-- Modal de Confirmação (Limpar Tudo) -->
+        <div class="modal-overlay" id="confirmModal">
+            <div class="confirm-box">
+                <div class="confirm-icon">
+                    <!-- Ícone de lixeira da Lucide -->
+                    <i data-lucide="trash-2" width="48" height="48"></i>
+                </div>
+                <h3 class="confirm-title" style="font-size: 20px; font-weight: 700;">Limpar Tudo?</h3>
+                <p class="confirm-text">
+                    Existem <strong id="modalItemCount" style="color: var(--fachini-blue);">0</strong> itens na
+                    lista.<br>
+                    Tem certeza que deseja apagar tudo? Esta ação não pode ser desfeita.
+                </p>
+                <div class="confirm-actions">
+                    <!-- Botão Cancelar -->
+                    <button class="btn" id="btnCancelClear"
+                        style="background: transparent; color: var(--text-muted); font-weight: 600;">Cancelar</button>
+                    <!-- Botão Continuar -->
+                    <button class="btn btn-secondary" id="btnConfirmClear"
+                        style="background: var(--fachini-blue); border-radius: 12px;">Continuar</button>
                 </div>
             </div>
+        </div>
 
+        <!-- Modal de Confirmação (Excluir Item Individual) -->
+        <div class="modal-overlay" id="deleteConfirmModal">
+            <div class="confirm-box">
+                <div class="confirm-icon" style="color: var(--danger);">
+                    <i data-lucide="trash-2" width="48" height="48"></i>
+                </div>
+                <h3 class="confirm-title">Excluir Item?</h3>
+                <p class="confirm-text">Tem certeza que deseja excluir esse item da lista?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-secondary" id="btnCancelDelete"
+                        style="background: var(--text-muted);">Cancelar</button>
+                    <button class="btn btn-primary" id="btnConfirmDelete"
+                        style="background-color: var(--danger); box-shadow: none;">Sim, Excluir</button>
+                </div>
+            </div>
         </div>
         <!-- Modal de Destino (Passo 1) -->
         <div class="modal-overlay" id="destinationModal">
@@ -247,31 +264,7 @@
 
 
         <script src="js/app.js?v=2"></script>
-        <script>
-            // Sidebar Toggle
-            (function () {
-                var sidebar = document.getElementById('sidebar');
-                var overlay = document.getElementById('sidebarOverlay');
-                var btnOpen = document.getElementById('btnMenu');
-                var btnClose = document.getElementById('btnCloseSidebar');
 
-                function open() {
-                    sidebar.style.right = '0';
-                    overlay.style.opacity = '1';
-                    overlay.style.visibility = 'visible';
-                    lucide.createIcons();
-                }
-                function close() {
-                    sidebar.style.right = '-270px';
-                    overlay.style.opacity = '0';
-                    overlay.style.visibility = 'hidden';
-                }
-
-                if (btnOpen) btnOpen.addEventListener('click', open);
-                if (btnClose) btnClose.addEventListener('click', close);
-                if (overlay) overlay.addEventListener('click', close);
-            })();
-        </script>
 </body>
 
 </html>

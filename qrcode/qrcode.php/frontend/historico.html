@@ -33,8 +33,10 @@
         <header class="header">
             <i data-lucide="truck" width="24" height="24" class="header-icon-left"></i>
             <span class="logo-text">Histórico</span>
-            <i data-lucide="menu" width="24" height="24" class="header-icon-right" id="btnMenu"
-                style="cursor:pointer;"></i>
+            <button id="btnMenu" class="header-icon-right"
+                style="background:none; border:none; color:inherit; cursor:pointer; padding:0; display:flex; align-items:center;">
+                <i data-lucide="menu" width="24" height="24"></i>
+            </button>
         </header>
 
         <!-- Sidebar Overlay -->
@@ -76,40 +78,34 @@
 
         <!-- Conteúdo Histórico -->
         <div class="list-section">
-            <div class="empty-state">
-                <i data-lucide="history" width="48" height="48" stroke-width="1.5"></i>
-                <p>O histórico está vazio.<br>Nenhuma atividade recente encontrada.</p>
+            <ul class="data-list" id="dataList" style="list-style:none; padding:0; margin:0;">
+                <div class="empty-state" id="emptyState">
+                    <i data-lucide="history" width="48" height="48" stroke-width="1.5"></i>
+                    <p>O histórico está vazio.<br>Nenhuma atividade recente encontrada.</p>
+                </div>
+            </ul>
+        </div>
+
+        <!-- Modal de Confirmação (Excluir Item Individual) -->
+        <div class="modal-overlay" id="deleteConfirmModal">
+            <div class="confirm-box">
+                <div class="confirm-icon" style="color: var(--danger);">
+                    <i data-lucide="trash-2" width="48" height="48"></i>
+                </div>
+                <h3 class="confirm-title">Excluir Item?</h3>
+                <p class="confirm-text">Tem certeza que deseja excluir esse item da lista?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-secondary" id="btnCancelDelete"
+                        style="background: var(--text-muted); padding: 12px; border: none; border-radius: 8px; color: #fff; cursor: pointer; flex: 1;">Cancelar</button>
+                    <button class="btn btn-primary" id="btnConfirmDelete"
+                        style="background-color: var(--danger); box-shadow: none; padding: 12px; border: none; border-radius: 8px; color: #fff; cursor: pointer; flex: 1;">Sim,
+                        Excluir</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
-
-        // Sidebar Toggle
-        (function () {
-            var sidebar = document.getElementById('sidebar');
-            var overlay = document.getElementById('sidebarOverlay');
-            var btnOpen = document.getElementById('btnMenu');
-            var btnClose = document.getElementById('btnCloseSidebar');
-
-            function open() {
-                sidebar.style.right = '0';
-                overlay.style.opacity = '1';
-                overlay.style.visibility = 'visible';
-                lucide.createIcons();
-            }
-            function close() {
-                sidebar.style.right = '-270px';
-                overlay.style.opacity = '0';
-                overlay.style.visibility = 'hidden';
-            }
-
-            if (btnOpen) btnOpen.addEventListener('click', open);
-            if (btnClose) btnClose.addEventListener('click', close);
-            if (overlay) overlay.addEventListener('click', close);
-        })();
-    </script>
+    <script src="js/app.js?v=2"></script>
 </body>
 
 </html>

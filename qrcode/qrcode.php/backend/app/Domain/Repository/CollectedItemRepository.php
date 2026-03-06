@@ -11,4 +11,6 @@ interface CollectedItemRepository
     public function deleteAll(): void;
     public function deleteById(int $id): void;
     public function existsByCode(string $code): bool;
+    public function incrementScanCount(string $code): void;
+    public function findByCode(string $code): ?CollectedItem;
 }

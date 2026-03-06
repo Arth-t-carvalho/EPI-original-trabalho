@@ -23,17 +23,26 @@ class SQLiteCollectedItemRepository implements CollectedItemRepository
             CREATE TABLE IF NOT EXISTS collected_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 code TEXT UNIQUE NOT NULL,
-                timestamp DATETIME NOT NULL
+                timestamp DATETIME NOT NULL,
+                scan_count INTEGER DEFAULT 1
             )
         ");
+
+        // Adiciona a coluna scan_count se o banco já existia sem ela
+        try {
+            $this->pdo->exec("ALTER TABLE collected_items ADD COLUMN scan_count INTEGER DEFAULT 1");
+        } catch (\PDOException $e) {
+            // Coluna já existe, ignorar
+        }
     }
 
     public function save(CollectedItem $item): void
     {
-        $stmt = $this->pdo->prepare("INSERT INTO collected_items (code, timestamp) VALUES (?, ?)");
+        $stmt = $this->pdo->prepare("INSERT INTO collected_items (code, timestamp, scan_count) VALUES (?, ?, ?)");
         $stmt->execute([
             $item->getCode(),
-            $item->getTimestamp()->format('Y-m-d H:i:s')
+            $item->getTimestamp()->format('Y-m-d H:i:s'),
+            $item->getScanCount()
         ]);
     }
 
@@ -47,7 +56,8 @@ class SQLiteCollectedItemRepository implements CollectedItemRepository
             $items[] = new CollectedItem(
                 $row['code'],
                 (int)$row['id'],
-                new \DateTimeImmutable($row['timestamp'])
+                new \DateTimeImmutable($row['timestamp']),
+                (int)($row['scan_count'] ?? 1)
             );
         }
 
@@ -70,5 +80,30 @@ class SQLiteCollectedItemRepository implements CollectedItemRepository
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM collected_items WHERE code = ?");
         $stmt->execute([$code]);
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function incrementScanCount(string $code): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE collected_items SET scan_count = scan_count + 1, timestamp = ? WHERE code = ?");
+        $stmt->execute([
+            (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            $code
+        ]);
+    }
+
+    public function findByCode(string $code): ?CollectedItem
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM collected_items WHERE code = ?");
+        $stmt->execute([$code]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$row) return null;
+
+        return new CollectedItem(
+            $row['code'],
+            (int)$row['id'],
+            new \DateTimeImmutable($row['timestamp']),
+            (int)($row['scan_count'] ?? 1)
+        );
     }
 }

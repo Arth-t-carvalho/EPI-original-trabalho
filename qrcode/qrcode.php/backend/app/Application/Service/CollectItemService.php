@@ -21,7 +21,9 @@ class CollectItemService
         }
 
         if ($this->repository->existsByCode($code)) {
-            throw new \Exception("Este código já foi lido!");
+            // Incrementa o contador em vez de rejeitar
+            $this->repository->incrementScanCount($code);
+            return $this->repository->findByCode($code);
         }
 
         $item = new CollectedItem($code);
